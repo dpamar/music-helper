@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "title": "Chord Progression",
+    "tempo": 90,
+    "clef": "sol",
+    "key_signature": "C",
+    "time_signature": [4, 4]
+  },
+  "elements": [
+    {
+      "type": "chord",
+      "duration": 2.0,
+      "notes": [
+        {"type": "note", "pitch": "Do", "duration": 2.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Mi", "duration": 2.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Sol", "duration": 2.0, "octave": 4, "accidental": null}
+      ]
+    },
+    {"type": "rest", "duration": 1.0},
+    {
+      "type": "chord",
+      "duration": 2.0,
+      "notes": [
+        {"type": "note", "pitch": "Fa", "duration": 2.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "La", "duration": 2.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Do", "duration": 2.0, "octave": 5, "accidental": null}
+      ]
+    },
+    {"type": "rest", "duration": 1.0},
+    {
+      "type": "chord",
+      "duration": 2.0,
+      "notes": [
+        {"type": "note", "pitch": "Sol", "duration": 2.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Si", "duration": 2.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Re", "duration": 2.0, "octave": 5, "accidental": null}
+      ]
+    },
+    {"type": "rest", "duration": 1.0},
+    {
+      "type": "chord",
+      "duration": 4.0,
+      "notes": [
+        {"type": "note", "pitch": "Do", "duration": 4.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Mi", "duration": 4.0, "octave": 4, "accidental": null},
+        {"type": "note", "pitch": "Sol", "duration": 4.0, "octave": 4, "accidental": null}
+      ]
+    }
+  ]
+}

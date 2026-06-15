@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "title": "Simple Melody",
+    "tempo": 120,
+    "clef": "sol",
+    "key_signature": "C",
+    "time_signature": [4, 4]
+  },
+  "elements": [
+    {"type": "note", "pitch": "Do", "duration": 1.0, "octave": 4, "accidental": null},
+    {"type": "note", "pitch": "Re", "duration": 1.0, "octave": 4, "accidental": null},
+    {"type": "note", "pitch": "Mi", "duration": 1.0, "octave": 4, "accidental": null},
+    {"type": "note", "pitch": "Fa", "duration": 1.0, "octave": 4, "accidental": null},
+    {"type": "rest", "duration": 1.0},
+    {"type": "note", "pitch": "Sol", "duration": 2.0, "octave": 4, "accidental": null},
+    {"type": "note", "pitch": "La", "duration": 1.0, "octave": 4, "accidental": null},
+    {"type": "note", "pitch": "Si", "duration": 1.0, "octave": 4, "accidental": null},
+    {"type": "note", "pitch": "Do", "duration": 2.0, "octave": 5, "accidental": null}
+  ]
+}
