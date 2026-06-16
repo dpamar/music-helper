@@ -68,9 +68,6 @@ class Renderer {
             container.removeChild(container.firstChild);
         }
 
-        // Crée l'en-tête (titre, tempo, etc.)
-        this.renderHeader(scoreData, container);
-
         // Crée le canvas
         const canvas = document.createElement('canvas');
         canvas.id = 'score-canvas';
@@ -141,27 +138,6 @@ class Renderer {
         ctx.textAlign = 'left';
     }
 
-    /**
-     * Rend l'en-tête de la partition (titre, tempo)
-     * @param {object} scoreData - Données de la partition
-     * @param {HTMLElement} container - Container DOM
-     */
-    renderHeader(scoreData, container) {
-        const header = document.createElement('div');
-        header.className = 'score-header';
-
-        const title = document.createElement('div');
-        title.className = 'score-title';
-        title.textContent = scoreData.title;
-
-        const meta = document.createElement('div');
-        meta.className = 'score-meta';
-        meta.textContent = `♩ = ${scoreData.tempo} | ${scoreData.timeSignature.numerator}/${scoreData.timeSignature.denominator} | Clef de ${scoreData.clef}`;
-
-        header.appendChild(title);
-        header.appendChild(meta);
-        container.appendChild(header);
-    }
 
     /**
      * Dessine la portée (5 lignes)

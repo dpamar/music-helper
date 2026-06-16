@@ -8,6 +8,7 @@
 // Instances globales
 let parser;
 let renderer;
+let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
 /**
  * Initialisation de l'application
@@ -63,6 +64,9 @@ function handleRender() {
 
         const scoreData = parser.parse(text);
         console.log('✅ Partition parsée:', scoreData);
+
+        // Stocke les données pour l'export
+        currentScoreData = scoreData;
 
         // Rend la partition
         renderer.render(scoreData, outputDiv);
@@ -128,7 +132,17 @@ function handleClear() {
     // Efface tout
     textarea.value = '';
     errorDiv.style.display = 'none';
-    outputDiv.innerHTML = '<p class="placeholder">Cliquez sur "Générer la partition" pour voir le rendu graphique</p>';
+
+    // Nettoie le container de manière sécurisée
+    while (outputDiv.firstChild) {
+        outputDiv.removeChild(outputDiv.firstChild);
+    }
+    const placeholder = document.createElement('p');
+    placeholder.className = 'placeholder';
+    placeholder.textContent = 'Cliquez sur "Générer la partition" pour voir le rendu graphique';
+    outputDiv.appendChild(placeholder);
+
+    currentScoreData = null; // Efface les données stockées
 
     // Désactive le bouton d'export
     setExportButtonState(false);
@@ -157,11 +171,10 @@ function handleExportPNG() {
 
         const dataURL = canvas.toDataURL('image/png');
 
-        const scoreTitle = document.querySelector('.score-title');
         let filename = 'partition.png';
 
-        if (scoreTitle && scoreTitle.textContent.trim()) {
-            const cleanTitle = scoreTitle.textContent.trim()
+        if (currentScoreData && currentScoreData.title && currentScoreData.title.trim()) {
+            const cleanTitle = currentScoreData.title.trim()
                 .toLowerCase()
                 .normalize('NFD').replace(/[̀-ͯ]/g, '')
                 .replace(/[^a-z0-9\s-]/g, '')
