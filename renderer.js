@@ -77,13 +77,17 @@ class Renderer {
 
         // Calcule les dimensions nécessaires
         const width = 1000;
-        const height = 400;
+        const height = 480;
         canvas.width = width;
         canvas.height = height;
 
         container.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
+
+        // Dessine le titre et les métadonnées sur le canvas
+        this.drawTitle(ctx, scoreData.title, width);
+        this.drawMetadata(ctx, scoreData, width);
 
         // Dessine la portée
         this.drawStaff(ctx, scoreData.clef);
@@ -101,6 +105,40 @@ class Renderer {
         // Dessine les notes
         currentX += 20; // Petit espace après le chiffrage
         this.drawNotes(ctx, scoreData.notes, currentX, scoreData.clef);
+    }
+
+    /**
+     * Dessine le titre de la partition sur le canvas
+     * @param {CanvasRenderingContext2D} ctx - Contexte du canvas
+     * @param {string} title - Titre de la partition
+     * @param {number} canvasWidth - Largeur du canvas
+     */
+    drawTitle(ctx, title, canvasWidth) {
+        if (!title || title.trim() === '') {
+            return;
+        }
+
+        ctx.font = 'bold 28px serif';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, canvasWidth / 2, 40);
+        ctx.textAlign = 'left';
+    }
+
+    /**
+     * Dessine les métadonnées (tempo, chiffrage, clef) sur le canvas
+     * @param {CanvasRenderingContext2D} ctx - Contexte du canvas
+     * @param {object} scoreData - Données de la partition
+     * @param {number} canvasWidth - Largeur du canvas
+     */
+    drawMetadata(ctx, scoreData, canvasWidth) {
+        const metaText = `♩ = ${scoreData.tempo} | ${scoreData.timeSignature.numerator}/${scoreData.timeSignature.denominator} | Clef de ${scoreData.clef}`;
+
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'center';
+        ctx.fillText(metaText, canvasWidth / 2, 65);
+        ctx.textAlign = 'left';
     }
 
     /**
