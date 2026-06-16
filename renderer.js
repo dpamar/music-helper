@@ -373,7 +373,7 @@ class Renderer {
         }
 
         // Dessine UNE queue pour tout l'accord
-        if (chord.duration === 1 || chord.duration <= 0.5) {
+        if (chord.duration === 1 || chord.duration === 1.5 || chord.duration === 2 || chord.duration === 3 || chord.duration <= 0.5) {
             const firstNote = chord.notes[0];
             const basePosition = this.notePositions[firstNote.note][clef];
             const position = basePosition + (firstNote.octave * 7);
