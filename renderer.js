@@ -19,7 +19,7 @@ class Renderer {
         };
 
         // Positions des notes sur la portée
-        // Position 0 = première ligne (ligne du BAS de la portée)
+        // Réinterprétons : position 0 = interligne SOUS la ligne 1 (là où est le Ré)
         // Chaque position = un demi-espace (ligne ou interligne)
         //
         // CLEF DE SOL : première ligne (position 0) = MI
@@ -51,9 +51,9 @@ class Renderer {
             'D': { 'sol': 0, 'fa': 4 },   // Ré : interligne juste sous ligne 1
             'E': { 'sol': 1, 'fa': 5 },   // Mi : ligne 1 (sol)
             'F': { 'sol': 2, 'fa': 6 },   // Fa : interligne
-            'G': { 'sol': 3, 'fa': 0 },   // Sol : ligne 2 (sol) / ligne 1 (fa)
-            'A': { 'sol': 4, 'fa': 1 },   // La : interligne
-            'B': { 'sol': 5, 'fa': 2 }    // Si : ligne 3 (sol)
+            'G': { 'sol': 3, 'fa': 7 },   // Sol : ligne 2 (sol) / ligne 1 (fa) le problème est là
+            'A': { 'sol': 4, 'fa': 8 },   // La : interligne
+            'B': { 'sol': 5, 'fa': 9 }    // Si : ligne 3 (sol)
         };
     }
 
@@ -304,7 +304,7 @@ class Renderer {
         const position = basePosition + (note.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
 
-        // Dessine les lignes supplémentaires si la note est hors portée
+        // Dessine les lignes supplémentaires si la note est hors portée (problème)
         this.drawLedgerLines(ctx, x, position, staffY);
 
         // Dessine la tête de note
