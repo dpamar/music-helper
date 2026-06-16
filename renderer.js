@@ -8,9 +8,7 @@
 
 class Renderer {
     constructor() {
-       
-
-	   // Configuration du rendu
+        // Configuration du rendu
         this.config = {
             staffLineSpacing: 12,      // Espacement entre les lignes de la portée
             noteWidth: 40,             // Largeur d'une note
