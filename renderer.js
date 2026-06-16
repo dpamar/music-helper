@@ -47,13 +47,13 @@ class Renderer {
         // Position 1 = ligne 1 = MI
         // Position -1 = ligne supplémentaire = DO médium
         this.notePositions = {
-            'C': { 'sol': -1, 'fa': 3 },  // Do : ligne supplémentaire sous la portée
-            'D': { 'sol': 0, 'fa': 4 },   // Ré : interligne juste sous ligne 1
-            'E': { 'sol': 1, 'fa': 5 },   // Mi : ligne 1 (sol)
-            'F': { 'sol': 2, 'fa': 6 },   // Fa : interligne
-            'G': { 'sol': 3, 'fa': 7 },   // Sol : ligne 2 (sol) / ligne 1 (fa) le problème est là
-            'A': { 'sol': 4, 'fa': 8 },   // La : interligne
-            'B': { 'sol': 5, 'fa': 9 }    // Si : ligne 3 (sol)
+            'C': { 'sol': -2, 'fa': 3 },  // Do : ligne supplémentaire sous la portée
+            'D': { 'sol': -1, 'fa': 4 },   // Ré : interligne juste sous ligne 1
+            'E': { 'sol': 0, 'fa': 5 },   // Mi : ligne 1 (sol)
+            'F': { 'sol': 1, 'fa': 6 },   // Fa : interligne
+            'G': { 'sol': 2, 'fa': 7 },   // Sol : ligne 2 (sol) / ligne 1 (fa) 
+            'A': { 'sol': 3, 'fa': 8 },   // La : interligne
+            'B': { 'sol': 4, 'fa': 9 }    // Si : ligne 3 (sol)
         };
     }
 
@@ -321,17 +321,20 @@ class Renderer {
         } else if (note.duration < 1) {
             this.drawNoteStem(ctx, x, y, note.duration);
         } else if (note.duration === 1) {
+			 this.drawNoteStem(ctx, x, y, note.duration);
+		} else if (note.duration === 1.5) {
+
             // Noire : tête pleine + queue
             this.drawNoteStem(ctx, x, y, note.duration);
         }
         // Blanche et ronde : pas de queue supplémentaire    je le corrige pour la blanche
-				if (note.duration === 2) {
+				if (note.duration === 2 || note.duration === 3 ) {
 			  this.drawNoteStem(ctx, x, y, note.duration);
 		}
 
 
         // Dessine le point (pour les notes pointées)
-        if (note.duration % 1 === 0.5) {
+        if (note.duration === 3 || note.duration === 1.5 || note.duration === 6 || note.duration === 0.75 || note.duration === 0.375) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
@@ -551,10 +554,7 @@ class Renderer {
      * @param {number} staffY - Position Y de la portée
      */
     drawLedgerLines(ctx, x, position, staffY = null) {
-		console.log("x: " + x);
-		console.log("position: " + position);
-		console.log("staffY: " + staffY);
-        ctx.strokeStyle = '#000';
+		ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
 
         // Si la note est en dessous de la portée (position < 0)
@@ -567,7 +567,7 @@ class Renderer {
                 ctx.stroke();
             }
         }
-        // Si la note est au-dessus de la portée (position > 8 pour clef de sol)
+        // Si la note est au-dessus de la portée (position > 9 pour clef de sol)
         else if (position > 9) {
             for (let p = 9; p < position; p += 2) {
                 const y = this.getYPosition(p, staffY);
