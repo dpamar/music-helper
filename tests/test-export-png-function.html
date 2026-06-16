@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Export PNG Functionality</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Export PNG - Fonctionnalité</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.src = '../index.html';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        iframe.onload = function() {
+            const win = iframe.contentWindow;
+            const doc = iframe.contentDocument;
+
+            // Test 1: handleExportPNG function exists
+            assert(typeof win.handleExportPNG === 'function', 'handleExportPNG() est définie');
+
+            // Test 2: setExportButtonState function exists
+            assert(typeof win.setExportButtonState === 'function', 'setExportButtonState() est définie');
+
+            // Test 3: Export without canvas shows error
+            const outputDiv = doc.getElementById('render-output');
+            outputDiv.innerHTML = '';
+            win.handleExportPNG();
+            const errorDiv = doc.getElementById('error-message');
+            assert(
+                errorDiv.style.display === 'block' && errorDiv.textContent.includes('générer'),
+                'Export sans canvas affiche une erreur demandant de générer'
+            );
+
+            // Test 4: After generating a score, canvas exists with valid PNG data
+            const textarea = doc.getElementById('partition-input');
+            textarea.value = 'Test\n120\n4/4\nsol\nDo Re Mi';
+            win.handleRender();
+            const canvas = doc.getElementById('score-canvas');
+            assert(canvas !== null, 'Le canvas existe après génération');
+
+            if (canvas) {
+                const dataURL = canvas.toDataURL('image/png');
+                assert(dataURL.startsWith('data:image/png'), 'toDataURL produit un PNG valide');
+            } else {
+                assert(false, 'toDataURL produit un PNG valide (canvas introuvable)');
+            }
+
+            // Test 5: Button is enabled after render
+            const btn = doc.getElementById('btn-export-png');
+            assert(btn && btn.disabled === false, 'Le bouton est activé après rendu réussi');
+
+            // Test 6: setExportButtonState(false) disables the button
+            win.setExportButtonState(false);
+            assert(btn && btn.disabled === true, 'setExportButtonState(false) désactive le bouton');
+
+            // Test 7: setExportButtonState(true) enables the button
+            win.setExportButtonState(true);
+            assert(btn && btn.disabled === false, 'setExportButtonState(true) active le bouton');
+
+            // Test 8: Export triggers download (intercept link click)
+            let downloadTriggered = false;
+            let downloadFilename = '';
+            const originalCreateElement = doc.createElement.bind(doc);
+            const originalAppendChild = doc.body.appendChild.bind(doc.body);
+            const originalRemoveChild = doc.body.removeChild.bind(doc.body);
+
+            // Monkey-patch to intercept the download link
+            const origCreate = doc.createElement;
+            doc.createElement = function(tag) {
+                const el = origCreate.call(doc, tag);
+                if (tag === 'a') {
+                    const origClick = el.click;
+                    el.click = function() {
+                        downloadTriggered = true;
+                        downloadFilename = el.download;
+                    };
+                }
+                return el;
+            };
+
+            win.handleExportPNG();
+
+            assert(downloadTriggered, 'L\'export déclenche un téléchargement');
+            assert(downloadFilename === 'test.png', 'Le nom du fichier est basé sur le titre: "test.png"');
+
+            // Restore
+            doc.createElement = origCreate;
+
+            displayResults();
+        };
+    </script>
+</body>
+</html>
