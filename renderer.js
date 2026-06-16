@@ -122,6 +122,22 @@ class Renderer {
     }
 
     /**
+     * Dessine les métadonnées (tempo, chiffrage, clef) sur le canvas
+     * @param {CanvasRenderingContext2D} ctx - Contexte du canvas
+     * @param {object} scoreData - Données de la partition
+     * @param {number} canvasWidth - Largeur du canvas
+     */
+    drawMetadata(ctx, scoreData, canvasWidth) {
+        const metaText = `♩ = ${scoreData.tempo} | ${scoreData.timeSignature.numerator}/${scoreData.timeSignature.denominator} | Clef de ${scoreData.clef}`;
+
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'center';
+        ctx.fillText(metaText, canvasWidth / 2, 65);
+        ctx.textAlign = 'left';
+    }
+
+    /**
      * Rend l'en-tête de la partition (titre, tempo)
      * @param {object} scoreData - Données de la partition
      * @param {HTMLElement} container - Container DOM
