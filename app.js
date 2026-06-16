@@ -22,6 +22,7 @@ function init() {
     const btnRender = document.getElementById('btn-render');
     const btnExample = document.getElementById('btn-example');
     const btnClear = document.getElementById('btn-clear');
+    const btnExportPNG = document.getElementById('btn-export-png');
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
 
@@ -29,6 +30,7 @@ function init() {
     btnRender.addEventListener('click', handleRender);
     btnExample.addEventListener('click', handleExample);
     btnClear.addEventListener('click', handleClear);
+    btnExportPNG.addEventListener('click', handleExportPNG);
 
     // Permet de générer avec Ctrl+Enter dans le textarea
     textarea.addEventListener('keydown', (e) => {
@@ -66,11 +68,17 @@ function handleRender() {
         renderer.render(scoreData, outputDiv);
         console.log('✅ Partition rendue');
 
+        // Active le bouton d'export
+        setExportButtonState(true);
+
     } catch (error) {
         // Affiche l'erreur
         console.error('❌ Erreur:', error.message);
         errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
+
+        // Désactive le bouton d'export en cas d'erreur
+        setExportButtonState(false);
 
         // Scroll vers l'erreur
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -121,6 +129,9 @@ function handleClear() {
     textarea.value = '';
     errorDiv.style.display = 'none';
     outputDiv.innerHTML = '<p class="placeholder">Cliquez sur "Générer la partition" pour voir le rendu graphique</p>';
+
+    // Désactive le bouton d'export
+    setExportButtonState(false);
 
     // Focus sur le textarea
     textarea.focus();
