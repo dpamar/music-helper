@@ -547,26 +547,29 @@ class Renderer {
      * @param {number} staffY - Position Y de la portée
      */
     drawLedgerLines(ctx, x, position, staffY = null) {
+		console.log("x: " + x);
+		console.log("position: " + position);
+		console.log("staffY: " + staffY);
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
 
         // Si la note est en dessous de la portée (position < 0)
         if (position < 0) {
-            for (let p = -1; p >= position; p -= 2) {
+            for (let p = -1; p > position; p -= 2) {
                 const y = this.getYPosition(p, staffY);
                 ctx.beginPath();
-                ctx.moveTo(x - 5, y);
-                ctx.lineTo(x + 18, y);
+                ctx.moveTo(x - 5, y+5);
+                ctx.lineTo(x + 18, y+5);
                 ctx.stroke();
             }
         }
         // Si la note est au-dessus de la portée (position > 8 pour clef de sol)
-        else if (position > 8) {
-            for (let p = 9; p <= position; p += 2) {
+        else if (position > 9) {
+            for (let p = 9; p < position; p += 2) {
                 const y = this.getYPosition(p, staffY);
                 ctx.beginPath();
-                ctx.moveTo(x - 5, y);
-                ctx.lineTo(x + 18, y);
+                ctx.moveTo(x - 5, y-5);
+                ctx.lineTo(x + 18, y-5);
                 ctx.stroke();
             }
         }
