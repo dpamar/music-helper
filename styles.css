@@ -184,6 +184,26 @@ button {
     color: #666;
 }
 
+/* Export actions */
+.export-actions {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.export-actions button {
+    min-width: 180px;
+}
+
+.export-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.export-actions button:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     body {
