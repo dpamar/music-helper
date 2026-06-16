@@ -189,11 +189,11 @@ class Renderer {
             let position = this.notePositions[alt.note][clef];
 
             // Si Do ou Ré en clef de sol (positions négatives), monte d'une octave
-            if (clef === 'sol' && (alt.note === 'C' || alt.note === 'D')) {
+            if (clef === 'sol' && alt.note !== 'A' && alt.note !== 'B') {
                 position += 7; // Monte d'une octave
             }
 
-            const y = this.getYPosition(position);
+            const y = this.getYPosition(position)+5;
 
             ctx.font = 'bold 20px serif';
             ctx.fillStyle = '#000';
