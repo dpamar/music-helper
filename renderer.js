@@ -85,6 +85,10 @@ class Renderer {
 
         const ctx = canvas.getContext('2d');
 
+        // Dessine le titre et les métadonnées sur le canvas
+        this.drawTitle(ctx, scoreData.title, width);
+        this.drawMetadata(ctx, scoreData, width);
+
         // Dessine la portée
         this.drawStaff(ctx, scoreData.clef);
 
