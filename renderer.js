@@ -304,7 +304,7 @@ class Renderer {
         const position = basePosition + (note.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
 
-        // Dessine les lignes supplémentaires si la note est hors portée (problème)
+        // Dessine les lignes supplémentaires si la note est hors portée 
         this.drawLedgerLines(ctx, x, position, staffY);
 
         // Dessine la tête de note
@@ -324,7 +324,11 @@ class Renderer {
             // Noire : tête pleine + queue
             this.drawNoteStem(ctx, x, y, note.duration);
         }
-        // Blanche et ronde : pas de queue supplémentaire
+        // Blanche et ronde : pas de queue supplémentaire    je le corrige pour la blanche
+				if (note.duration === 2) {
+			  this.drawNoteStem(ctx, x, y, note.duration);
+		}
+
 
         // Dessine le point (pour les notes pointées)
         if (note.duration % 1 === 0.5) {
