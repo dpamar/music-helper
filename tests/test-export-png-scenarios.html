@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Export PNG Scenarios</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Export PNG - Scénarios multiples</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.src = '../index.html';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        iframe.onload = function() {
+            const win = iframe.contentWindow;
+            const doc = iframe.contentDocument;
+
+            // Intercept download links
+            let lastDownloadFilename = '';
+            const origCreate = doc.createElement;
+            doc.createElement = function(tag) {
+                const el = origCreate.call(doc, tag);
+                if (tag === 'a') {
+                    const origClick = el.click;
+                    el.click = function() {
+                        lastDownloadFilename = el.download;
+                    };
+                }
+                return el;
+            };
+
+            // Scenario 1: Standard example - "Au clair de la lune"
+            const textarea = doc.getElementById('partition-input');
+            textarea.value = 'Au clair de la lune\n120\n4/4\nsol\nDo Do Do Re Mi2 Re2';
+            win.handleRender();
+            win.handleExportPNG();
+            assert(
+                lastDownloadFilename === 'au-clair-de-la-lune.png',
+                'Scénario 1: titre standard → "au-clair-de-la-lune.png" (obtenu: "' + lastDownloadFilename + '")'
+            );
+
+            // Scenario 2: Title with accents and special chars
+            lastDownloadFilename = '';
+            textarea.value = 'Là-haut sur la montagne !\n120\n4/4\nsol\nDo Re Mi';
+            win.handleRender();
+            win.handleExportPNG();
+            assert(
+                lastDownloadFilename === 'la-haut-sur-la-montagne.png',
+                'Scénario 2: accents et caractères spéciaux → "la-haut-sur-la-montagne.png" (obtenu: "' + lastDownloadFilename + '")'
+            );
+
+            // Scenario 3: Button disabled after clear
+            // Simulate clear without confirm dialog
+            const outputDiv = doc.getElementById('render-output');
+            textarea.value = '';
+            doc.getElementById('error-message').style.display = 'none';
+            outputDiv.innerHTML = '<p class="placeholder">Cliquez sur "Générer la partition" pour voir le rendu graphique</p>';
+            win.setExportButtonState(false);
+            const btn = doc.getElementById('btn-export-png');
+            assert(
+                btn.disabled === true,
+                'Scénario 3: bouton désactivé après effacement'
+            );
+
+            // Scenario 4: Multi-line partition generates complete canvas
+            textarea.value = 'Partition longue\n120\n4/4\nsol\nDo Re Mi Fa Sol La Si Do+ Do Re Mi Fa Sol La Si Do+ Do Re Mi Fa Sol La Si Do+';
+            win.handleRender();
+            const canvas = doc.getElementById('score-canvas');
+            assert(
+                canvas !== null && canvas.height > 200,
+                'Scénario 4: partition longue génère un canvas de hauteur > 200px (hauteur: ' + (canvas ? canvas.height : 0) + ')'
+            );
+            lastDownloadFilename = '';
+            win.handleExportPNG();
+            assert(
+                lastDownloadFilename === 'partition-longue.png',
+                'Scénario 4: export multi-ligne → "partition-longue.png" (obtenu: "' + lastDownloadFilename + '")'
+            );
+
+            // Scenario 5: Error case - empty input
+            textarea.value = '';
+            win.handleRender();
+            const errorDiv = doc.getElementById('error-message');
+            assert(
+                btn.disabled === true,
+                'Scénario 5: bouton désactivé après erreur de parsing'
+            );
+
+            // Restore
+            doc.createElement = origCreate;
+
+            displayResults();
+        };
+    </script>
+</body>
+</html>

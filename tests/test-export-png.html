@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Export PNG</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Export PNG</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        // Load the app in an iframe to test DOM
+        const iframe = document.createElement('iframe');
+        iframe.src = '../index.html';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        iframe.onload = function() {
+            const doc = iframe.contentDocument;
+
+            // Test 1: Button exists
+            const btn = doc.getElementById('btn-export-png');
+            assert(btn !== null, 'Le bouton #btn-export-png existe dans le DOM');
+
+            // Test 2: Button text mentions PNG
+            if (btn) {
+                assert(btn.textContent.includes('PNG'), 'Le texte du bouton mentionne "PNG"');
+            } else {
+                assert(false, 'Le texte du bouton mentionne "PNG" (bouton introuvable)');
+            }
+
+            // Test 3: Button is disabled by default
+            if (btn) {
+                assert(btn.disabled === true, 'Le bouton est désactivé par défaut');
+            } else {
+                assert(false, 'Le bouton est désactivé par défaut (bouton introuvable)');
+            }
+
+            // Test 4: Button has btn-secondary class
+            if (btn) {
+                assert(btn.classList.contains('btn-secondary'), 'Le bouton a la classe btn-secondary');
+            } else {
+                assert(false, 'Le bouton a la classe btn-secondary (bouton introuvable)');
+            }
+
+            // Test 5: Export actions container exists
+            const container = doc.querySelector('.export-actions');
+            assert(container !== null, 'Le conteneur .export-actions existe');
+
+            displayResults();
+        };
+    </script>
+</body>
+</html>
