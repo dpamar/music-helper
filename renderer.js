@@ -19,7 +19,7 @@ class Renderer {
         };
 
         // Positions des notes sur la portée
-        // Position 0 = première ligne (ligne du BAS de la portée)
+        // Réinterprétons : position 0 = interligne SOUS la ligne 1 (là où est le Ré)
         // Chaque position = un demi-espace (ligne ou interligne)
         //
         // CLEF DE SOL : première ligne (position 0) = MI
@@ -47,13 +47,13 @@ class Renderer {
         // Position 1 = ligne 1 = MI
         // Position -1 = ligne supplémentaire = DO médium
         this.notePositions = {
-            'C': { 'sol': -1, 'fa': 3 },  // Do : ligne supplémentaire sous la portée
-            'D': { 'sol': 0, 'fa': 4 },   // Ré : interligne juste sous ligne 1
-            'E': { 'sol': 1, 'fa': 5 },   // Mi : ligne 1 (sol)
-            'F': { 'sol': 2, 'fa': 6 },   // Fa : interligne
-            'G': { 'sol': 3, 'fa': 0 },   // Sol : ligne 2 (sol) / ligne 1 (fa)
-            'A': { 'sol': 4, 'fa': 1 },   // La : interligne
-            'B': { 'sol': 5, 'fa': 2 }    // Si : ligne 3 (sol)
+            'C': { 'sol': -2, 'fa': 3 },  // Do : ligne supplémentaire sous la portée
+            'D': { 'sol': -1, 'fa': 4 },   // Ré : interligne juste sous ligne 1
+            'E': { 'sol': 0, 'fa': 5 },   // Mi : ligne 1 (sol)
+            'F': { 'sol': 1, 'fa': 6 },   // Fa : interligne
+            'G': { 'sol': 2, 'fa': 7 },   // Sol : ligne 2 (sol) / ligne 1 (fa) 
+            'A': { 'sol': 3, 'fa': 8 },   // La : interligne
+            'B': { 'sol': 4, 'fa': 9 }    // Si : ligne 3 (sol)
         };
     }
 
@@ -189,11 +189,11 @@ class Renderer {
             let position = this.notePositions[alt.note][clef];
 
             // Si Do ou Ré en clef de sol (positions négatives), monte d'une octave
-            if (clef === 'sol' && (alt.note === 'C' || alt.note === 'D')) {
+            if (clef === 'sol' && alt.note !== 'A' && alt.note !== 'B') {
                 position += 7; // Monte d'une octave
             }
 
-            const y = this.getYPosition(position);
+            const y = this.getYPosition(position)+5;
 
             ctx.font = 'bold 20px serif';
             ctx.fillStyle = '#000';
@@ -304,7 +304,7 @@ class Renderer {
         const position = basePosition + (note.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
 
-        // Dessine les lignes supplémentaires si la note est hors portée
+        // Dessine les lignes supplémentaires si la note est hors portée 
         this.drawLedgerLines(ctx, x, position, staffY);
 
         // Dessine la tête de note
@@ -321,13 +321,20 @@ class Renderer {
         } else if (note.duration < 1) {
             this.drawNoteStem(ctx, x, y, note.duration);
         } else if (note.duration === 1) {
+			 this.drawNoteStem(ctx, x, y, note.duration);
+		} else if (note.duration === 1.5) {
+
             // Noire : tête pleine + queue
             this.drawNoteStem(ctx, x, y, note.duration);
         }
-        // Blanche et ronde : pas de queue supplémentaire
+        // Blanche et ronde : pas de queue supplémentaire    je le corrige pour la blanche
+				if (note.duration === 2 || note.duration === 3 ) {
+			  this.drawNoteStem(ctx, x, y, note.duration);
+		}
+
 
         // Dessine le point (pour les notes pointées)
-        if (note.duration % 1 === 0.5) {
+        if (note.duration === 3 || note.duration === 1.5 || note.duration === 6 || note.duration === 0.75 || note.duration === 0.375) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
@@ -348,9 +355,15 @@ class Renderer {
      */
     drawChord(ctx, chord, x, clef, staffY = null) {
         // Dessine chaque note de l'accord à la même position X
+		var firstNote = null;
+		var firstNotePosition = 0;
         for (const note of chord.notes) {
             const basePosition = this.notePositions[note.note][clef];
             const position = basePosition + (note.octave * 7);
+			if (firstNote == null || firstNotePosition < position) {
+				firstNote = note;
+				firstNotePosition = position;
+			}
             const y = this.getYPosition(position, staffY);
 
             // Lignes supplémentaires
@@ -358,6 +371,8 @@ class Renderer {
 
             // Tête de note
             this.drawNoteHead(ctx, x, y, chord.duration);
+			this.drawNoteStem(ctx, x, y, 1);
+
 
             // Altération
             if (note.alteration) {
@@ -366,8 +381,7 @@ class Renderer {
         }
 
         // Dessine UNE queue pour tout l'accord
-        if (chord.duration === 1 || chord.duration <= 0.5) {
-            const firstNote = chord.notes[0];
+        if (chord.duration === 1 || chord.duration === 1.5 || chord.duration === 2 || chord.duration === 3 || chord.duration <= 0.5) {
             const basePosition = this.notePositions[firstNote.note][clef];
             const position = basePosition + (firstNote.octave * 7);
             const y = this.getYPosition(position, staffY);
@@ -547,26 +561,26 @@ class Renderer {
      * @param {number} staffY - Position Y de la portée
      */
     drawLedgerLines(ctx, x, position, staffY = null) {
-        ctx.strokeStyle = '#000';
+		ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
 
         // Si la note est en dessous de la portée (position < 0)
         if (position < 0) {
-            for (let p = -1; p >= position; p -= 2) {
+            for (let p = -1; p > position; p -= 2) {
                 const y = this.getYPosition(p, staffY);
                 ctx.beginPath();
-                ctx.moveTo(x - 5, y);
-                ctx.lineTo(x + 18, y);
+                ctx.moveTo(x - 5, y+5);
+                ctx.lineTo(x + 18, y+5);
                 ctx.stroke();
             }
         }
-        // Si la note est au-dessus de la portée (position > 8 pour clef de sol)
-        else if (position > 8) {
-            for (let p = 9; p <= position; p += 2) {
+        // Si la note est au-dessus de la portée (position > 9 pour clef de sol)
+        else if (position > 9) {
+            for (let p = 9; p < position; p += 2) {
                 const y = this.getYPosition(p, staffY);
                 ctx.beginPath();
-                ctx.moveTo(x - 5, y);
-                ctx.lineTo(x + 18, y);
+                ctx.moveTo(x - 5, y-5);
+                ctx.lineTo(x + 18, y-5);
                 ctx.stroke();
             }
         }
