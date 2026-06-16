@@ -7,7 +7,7 @@ Application web client-side pour saisir et afficher des partitions musicales en 
 Cette application permet aux musiciens de :
 - Saisir une partition en notation textuelle simplifiée (notation française)
 - Générer automatiquement un rendu graphique sur portée musicale (Canvas HTML5)
-- Exporter (futur : PDF/PNG)
+- Exporter (PNG disponible, PDF en développement)
 
 **Contraintes techniques :**
 - 100% client-side (HTML/CSS/JS vanilla, aucun framework)
@@ -237,11 +237,14 @@ getYPosition(position, staffY = null) {
 - `handleRender()` → Génère la partition (parse + render)
 - `handleExample()` → Charge un exemple prédéfini
 - `handleClear()` → Efface tout
+- `handleExportPNG()` → Exporte la partition en PNG
+- `setExportButtonState(enabled)` → Active/désactive le bouton d'export
 
 **Événements :**
 - Clic sur "Générer la partition" → `handleRender()`
 - Clic sur "Exemple" → `handleExample()`
 - Clic sur "Effacer" → `handleClear()`
+- Clic sur "Exporter en PNG" → `handleExportPNG()`
 - `Ctrl+Enter` dans textarea → `handleRender()`
 
 **Gestion d'erreurs :**
@@ -259,6 +262,36 @@ getYPosition(position, staffY = null) {
   - Focus : bordure bleue + ombre
   - Hover : transformation subtile
   - Erreur : fond rouge clair + bordure rouge
+
+## 📥 Export PNG
+
+L'application permet d'exporter la partition générée sous forme d'image PNG.
+
+### Fonctionnement
+
+1. **Génération de l'image** : 
+   - Utilise `canvas.toDataURL('image/png')` pour convertir le canvas en data URL
+   - Format PNG pour garantir la qualité et la transparence
+
+2. **Nom du fichier** :
+   - Basé sur le titre de la partition (extrait de `.score-title`)
+   - Nettoyage automatique : accents supprimés, espaces → tirets, caractères spéciaux filtrés
+   - Exemple : `"Au clair de la lune"` → `au-clair-de-la-lune.png`
+   - Par défaut : `partition.png` si pas de titre
+
+3. **Téléchargement** :
+   - Création d'un lien `<a>` temporaire avec attribut `download`
+   - Click programmatique pour déclencher le téléchargement
+   - Nettoyage du lien après téléchargement
+
+### État du bouton
+
+- **Désactivé** (`disabled`) :
+  - Au chargement de la page
+  - Après "Effacer"
+  - En cas d'erreur de génération
+- **Activé** :
+  - Après une génération réussie de la partition
 
 ## 🔧 Comment ajouter une fonctionnalité
 
@@ -313,7 +346,8 @@ drawNuance(ctx, nuance, x, staffY) {
 - ⚠️ Barres de mesure : calculées sur 4 temps fixes (ne s'adapte pas au chiffrage)
 - ⚠️ Pas de validation de la cohérence des mesures (sous-remplies ou sur-remplies)
 - ⚠️ Pas de support multi-voix
-- ⚠️ Pas d'export PDF/PNG pour l'instant
+- ✅ ~~Pas d'export PNG~~ → Implémenté
+- ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
 
 ## 📚 Ressources
 
