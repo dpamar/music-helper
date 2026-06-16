@@ -104,6 +104,24 @@ class Renderer {
     }
 
     /**
+     * Dessine le titre de la partition sur le canvas
+     * @param {CanvasRenderingContext2D} ctx - Contexte du canvas
+     * @param {string} title - Titre de la partition
+     * @param {number} canvasWidth - Largeur du canvas
+     */
+    drawTitle(ctx, title, canvasWidth) {
+        if (!title || title.trim() === '') {
+            return;
+        }
+
+        ctx.font = 'bold 28px serif';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, canvasWidth / 2, 40);
+        ctx.textAlign = 'left';
+    }
+
+    /**
      * Rend l'en-tête de la partition (titre, tempo)
      * @param {object} scoreData - Données de la partition
      * @param {HTMLElement} container - Container DOM
