@@ -77,7 +77,7 @@ class Renderer {
 
         // Calcule les dimensions nécessaires
         const width = 1000;
-        const height = 400;
+        const height = 480;
         canvas.width = width;
         canvas.height = height;
 
