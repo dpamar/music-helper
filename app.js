@@ -126,6 +126,65 @@ function handleClear() {
     textarea.focus();
 }
 
+/**
+ * Gère le clic sur "Exporter en PNG"
+ * Convertit le canvas en image PNG et déclenche le téléchargement
+ */
+function handleExportPNG() {
+    const canvas = document.getElementById('score-canvas');
+    const errorDiv = document.getElementById('error-message');
+
+    if (!canvas) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        const dataURL = canvas.toDataURL('image/png');
+
+        const scoreTitle = document.querySelector('.score-title');
+        let filename = 'partition.png';
+
+        if (scoreTitle && scoreTitle.textContent.trim()) {
+            const cleanTitle = scoreTitle.textContent.trim()
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+
+            filename = `${cleanTitle}.png`;
+        }
+
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = dataURL;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        errorDiv.textContent = '❌ Erreur lors de l\'export: ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Active ou désactive le bouton d'export PNG
+ */
+function setExportButtonState(enabled) {
+    const btnExportPNG = document.getElementById('btn-export-png');
+    if (btnExportPNG) {
+        btnExportPNG.disabled = !enabled;
+    }
+}
+
 // Lance l'initialisation au chargement de la page
 // DOMContentLoaded s'assure que le DOM est prêt avant d'exécuter le code
 document.addEventListener('DOMContentLoaded', init);
