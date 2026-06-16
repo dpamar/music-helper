@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur de Partitions</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎼 Éditeur de Partitions</h1>
+        </header>
+
+        <main>
+            <!-- Zone de saisie -->
+            <section class="input-section">
+                <h2>Saisie de la partition</h2>
+                <div class="help-text">
+                    <strong>Format :</strong><br>
+                    Ligne 1: Titre<br>
+                    Ligne 2: Tempo (ex: 120)<br>
+                    Ligne 3: Chiffrage (ex: 4/4)<br>
+                    Ligne 4: Clef et altérations (ex: sol, Fa#, Do#)<br>
+                    Lignes suivantes: Notes (ex: Do Re Mi2 Fa# Sol+ La-- Si0.5 DoMiSol1.5 S2)
+                </div>
+                <textarea id="partition-input" rows="15" placeholder="Ma première partition
+120
+4/4
+sol
+Do Re Mi Fa Sol La Si Do+"></textarea>
+                <div class="actions">
+                    <button id="btn-render" class="btn-primary">Générer la partition</button>
+                    <button id="btn-example" class="btn-secondary">Charger un exemple</button>
+                    <button id="btn-clear" class="btn-secondary">Effacer</button>
+                </div>
+                <div id="error-message" class="error-message" style="display: none;"></div>
+            </section>
+
+            <!-- Zone de rendu -->
+            <section class="render-section">
+                <h2>Partition générée</h2>
+                <div id="render-output" class="render-output">
+                    <p class="placeholder">Cliquez sur "Générer la partition" pour voir le rendu graphique</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="parser.js"></script>
+    <script src="renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

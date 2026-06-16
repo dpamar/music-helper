@@ -1,0 +1,373 @@
+# Éditeur de Partitions Musicales
+
+Application web client-side pour saisir et afficher des partitions musicales en notation française.
+
+## 🎯 Vue d'ensemble
+
+Cette application permet aux musiciens de :
+- Saisir une partition en notation textuelle simplifiée (notation française)
+- Générer automatiquement un rendu graphique sur portée musicale (Canvas HTML5)
+- Exporter (futur : PDF/PNG)
+
+**Contraintes techniques :**
+- 100% client-side (HTML/CSS/JS vanilla, aucun framework)
+- Déployable sur GitHub Pages
+- Code abondamment commenté pour les débutants
+
+## 📁 Architecture
+
+```
+music-helper/
+├── index.html          # Page principale et structure DOM
+├── styles.css          # Design et mise en page
+├── parser.js           # Parse la notation textuelle → structures de données
+├── renderer.js         # Rendu graphique Canvas → portée musicale
+├── app.js              # Orchestration et gestion des événements
+└── CLAUDE.md           # Ce fichier
+```
+
+### Flux de données
+
+```
+Texte saisi par l'utilisateur
+    ↓
+Parser.parse() → Objet structuré (ParseResult)
+    ↓
+Renderer.render() → Canvas HTML5
+```
+
+## 🎼 Format de notation
+
+### Structure (5 lignes minimum)
+
+```
+Ligne 1 : Titre de la partition
+Ligne 2 : Tempo (ex: 120)
+Ligne 3 : Chiffrage (ex: 4/4, 3/4, 6/8)
+Ligne 4 : Clef et altérations (ex: sol, fa, sol Do# Mib)
+Ligne 5+ : Notes et silences séparés par des espaces
+```
+
+### Syntaxe des notes
+
+- **Note simple** : `Do`, `Re`, `Mi`, `Fa`, `Sol`, `La`, `Si` (insensible à la casse)
+- **Durée** : nombre après la note
+  - `Do` = noire (1, par défaut)
+  - `Do4` = ronde
+  - `Do2` = blanche
+  - `Do1.5` = noire pointée
+  - `Do0.5` ou `Do.5` = croche
+  - `Do0.25` = double croche
+- **Altération** : `#` (dièse), `b` (bémol), `*` (bécarre)
+  - Exemples : `Do#`, `Mib`, `Fa*`
+- **Octave** : `--`, `-`, (rien), `+`, `++`
+  - `Do--` = 2 octaves en dessous
+  - `Do-` = 1 octave en dessous
+  - `Do` = octave de référence (médium)
+  - `Do+` = 1 octave au-dessus
+  - `Do++` = 2 octaves au-dessus
+- **Accord** : notes collées (sans espace)
+  - `DoMiSol2` = accord de Do majeur (blanche)
+  - La durée s'applique à tout l'accord
+- **Silence** : `S`, `S2`, `S0.5`, etc.
+
+### Exemples
+
+```
+Au clair de la lune
+120
+4/4
+sol
+Do Do Do Re Mi2 Re2
+Do Mi Re Re Do2
+```
+
+```
+Gamme de Do majeur
+100
+3/4
+sol Do# Fa#
+Do Re Mi Fa Sol La Si Do+
+```
+
+## 🏗️ Modules principaux
+
+### `parser.js` - Parser
+
+**Classe** : `Parser`
+
+**Responsabilité** : Transformer le texte brut en structures de données JavaScript.
+
+**Méthodes principales :**
+- `parse(text)` → `ParseResult`
+  - Point d'entrée principal
+  - Retourne un objet avec : `{title, tempo, timeSignature, clef, keySignature, notes}`
+- `parseTempo(str)` → `number`
+- `parseTimeSignature(str)` → `{numerator, denominator}`
+- `parseClefAndKey(str)` → `{clef, keySignature}`
+- `parseNotes(str)` → `Array<Note | Chord | Rest>`
+
+**Structures de données retournées :**
+
+```javascript
+// Note simple
+{
+  type: 'note',
+  note: 'C',           // Notation anglo-saxonne (C, D, E, F, G, A, B)
+  alteration: 'sharp', // 'sharp', 'flat', 'natural' ou ''
+  octave: 0,           // -2, -1, 0, 1, 2
+  duration: 1          // 0.25, 0.5, 1, 1.5, 2, 3, 4
+}
+
+// Accord
+{
+  type: 'chord',
+  notes: [
+    {note: 'C', alteration: '', octave: 0},
+    {note: 'E', alteration: '', octave: 0},
+    {note: 'G', alteration: '', octave: 0}
+  ],
+  duration: 2
+}
+
+// Silence
+{
+  type: 'rest',
+  duration: 1
+}
+```
+
+**Points d'attention :**
+- Mapping français → anglo-saxon : `{do: 'C', ré: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B'}`
+- Regex pour détecter les silences : `/^s[\d.]*$/i` (évite de confondre "Sol" avec "S")
+- Regex pour parser les notes : `/(do|ré|re|mi|fa|sol|la|si)(#|b|\*)?(--|-|\+|\+\+)?/gi`
+
+### `renderer.js` - Moteur de rendu
+
+**Classe** : `Renderer`
+
+**Responsabilité** : Dessiner la partition sur un Canvas HTML5.
+
+**Configuration :**
+```javascript
+this.config = {
+  staffLineSpacing: 12,    // Espacement entre lignes de portée
+  noteWidth: 40,           // Largeur d'une note
+  marginTop: 100,          // Marge haute (pour titre)
+  staffStartX: 80,         // Début de la portée
+  clefWidth: 60            // Largeur de la clef
+}
+```
+
+**Positions des notes sur la portée :**
+
+```javascript
+// En clef de SOL :
+// Position -1 = ligne supplémentaire (Do médium)
+// Position 0 = interligne sous ligne 1 (Ré médium)
+// Position 1 = ligne 1 (Mi)
+// Position 3 = ligne 2 (Sol)
+// Position 5 = ligne 3 (Si - milieu)
+// Position 7 = ligne 4 (Ré+)
+// Position 9 = ligne 5 (Fa+)
+
+this.notePositions = {
+  'C': { 'sol': -1, 'fa': 3 },  // Do
+  'D': { 'sol': 0, 'fa': 4 },   // Ré
+  'E': { 'sol': 1, 'fa': 5 },   // Mi
+  'F': { 'sol': 2, 'fa': 6 },   // Fa
+  'G': { 'sol': 3, 'fa': 0 },   // Sol
+  'A': { 'sol': 4, 'fa': 1 },   // La
+  'B': { 'sol': 5, 'fa': 2 }    // Si
+}
+```
+
+**Méthodes principales :**
+- `render(scoreData, container)` → void
+  - Point d'entrée principal
+  - Crée le canvas et orchestre le dessin
+- `drawStaff(ctx, clef, yOffset)` → void (5 lignes horizontales)
+- `drawClef(ctx, clef)` → void (symbole 𝄞 ou 𝄢)
+- `drawKeySignature(ctx, keySignature, startX, clef)` → number (altérations à la clef)
+- `drawTimeSignature(ctx, timeSignature, startX)` → number (chiffrage)
+- `drawNotes(ctx, notes, startX, clef)` → void
+- `drawNote(ctx, note, x, clef, staffY)` → number
+- `drawChord(ctx, chord, x, clef, staffY)` → number
+- `drawRest(ctx, rest, x, staffY)` → number
+- `drawBarline(ctx, x, staffY, isDouble)` → void
+- `drawLedgerLines(ctx, x, position, staffY)` → void (lignes supplémentaires)
+
+**Calcul de position Y :**
+```javascript
+getYPosition(position, staffY = null) {
+  const staffBottom = (staffY || this.config.marginTop) + (4 * this.config.staffLineSpacing);
+  const spacing = this.config.staffLineSpacing / 2;
+  return staffBottom - (position * spacing);
+}
+```
+
+**Octaves :**
+- Chaque octave = décalage de 7 positions (7 notes : Do Ré Mi Fa Sol La Si)
+- Position finale = `basePosition + (octave * 7)`
+- Exemple : Do+ → position -1 + 7 = 6
+
+**Barres de mesure :**
+- Automatiques tous les 4 temps (pour 4/4)
+- Barre double à la fin
+- TODO : adapter au chiffrage réel
+
+**Retour à la ligne :**
+- À partir de x > 850px, nouvelle portée 150px plus bas
+- Canvas agrandi dynamiquement
+
+**Symboles Unicode utilisés :**
+- Clef de sol : `𝄞` (U+1D11E)
+- Clef de fa : `𝄢` (U+1D122)
+- Dièse : `♯` (U+266F)
+- Bémol : `♭` (U+266D)
+- Bécarre : `♮` (U+266E)
+- Silences : `𝄻 𝄼 𝄽 𝄾 𝄿` (U+1D13B-1D13F)
+
+### `app.js` - Orchestration
+
+**Responsabilité** : Gestion des événements utilisateur et coordination Parser ↔ Renderer.
+
+**Fonctions principales :**
+- `init()` → Initialisation au chargement de la page
+- `handleRender()` → Génère la partition (parse + render)
+- `handleExample()` → Charge un exemple prédéfini
+- `handleClear()` → Efface tout
+
+**Événements :**
+- Clic sur "Générer la partition" → `handleRender()`
+- Clic sur "Exemple" → `handleExample()`
+- Clic sur "Effacer" → `handleClear()`
+- `Ctrl+Enter` dans textarea → `handleRender()`
+
+**Gestion d'erreurs :**
+- `try/catch` autour du parsing et du rendu
+- Affichage des erreurs dans `#error-message` avec scroll automatique
+
+## 🎨 Design (styles.css)
+
+- **Palette** : Dégradé violet (667eea → 764ba2)
+- **Typographie** :
+  - Titres : Segoe UI / sans-serif
+  - Code/saisie : Courier New / monospace
+- **Responsive** : Desktop optimisé, support tablet/mobile basique
+- **États** :
+  - Focus : bordure bleue + ombre
+  - Hover : transformation subtile
+  - Erreur : fond rouge clair + bordure rouge
+
+## 🔧 Comment ajouter une fonctionnalité
+
+### Ajouter un nouveau symbole musical
+
+1. **Parser** : Ajouter la syntaxe dans `parseNotes()` ou créer une nouvelle méthode
+2. **Structure de données** : Définir le format de l'objet retourné
+3. **Renderer** : Créer une méthode `draw[Symbol]()`
+4. **Appeler** depuis `drawNotes()`
+
+Exemple : ajouter les nuances (forte, piano) :
+```javascript
+// 1. Parser
+parseNuance(token) {
+  if (token === 'f') return { type: 'nuance', value: 'forte' };
+  if (token === 'p') return { type: 'nuance', value: 'piano' };
+  return null;
+}
+
+// 2. Renderer
+drawNuance(ctx, nuance, x, staffY) {
+  const y = (staffY || this.config.marginTop) + 60;
+  ctx.font = 'italic 16px serif';
+  ctx.fillText(nuance.value === 'forte' ? 'f' : 'p', x, y);
+}
+```
+
+### Ajouter un export PDF
+
+1. Inclure une bibliothèque : [jsPDF](https://github.com/parallax/jsPDF)
+2. Dans `app.js`, créer `handleExportPDF()`
+3. Capturer le canvas : `canvas.toDataURL()`
+4. Insérer dans PDF et déclencher le téléchargement
+
+### Changer les positions des notes
+
+**⚠️ ATTENTION** : Les positions sont critiques et interconnectées.
+
+- Modifier `this.notePositions` dans `renderer.js`
+- Vérifier l'impact sur :
+  - `drawKeySignature()` (altérations à la clef)
+  - `drawLedgerLines()` (lignes supplémentaires)
+  - Les octaves (multiplication par 7)
+- **Tester exhaustivement** : Do, Ré, Mi en octave médium, +, ++, -, --
+
+## 🐛 Bugs connus / Limitations
+
+- ✅ ~~Do et Ré médiums mal positionnés~~ → Corrigé
+- ✅ ~~Clef de fa mal centrée~~ → Corrigé
+- ✅ ~~"Sol" détecté comme silence~~ → Corrigé
+- ✅ ~~Bémols non reconnus (Mib)~~ → Corrigé
+- ⚠️ Barres de mesure : calculées sur 4 temps fixes (ne s'adapte pas au chiffrage)
+- ⚠️ Pas de validation de la cohérence des mesures (sous-remplies ou sur-remplies)
+- ⚠️ Pas de support multi-voix
+- ⚠️ Pas d'export PDF/PNG pour l'instant
+
+## 📚 Ressources
+
+### Notation musicale
+- [Théorie musicale de base](https://fr.wikipedia.org/wiki/Solf%C3%A8ge)
+- [Clef de sol](https://fr.wikipedia.org/wiki/Clef_de_sol)
+- [Clef de fa](https://fr.wikipedia.org/wiki/Clef_de_fa)
+
+### Techniques
+- [Canvas API](https://developer.mozilla.org/fr/docs/Web/API/Canvas_API)
+- [Musical Symbols Unicode](https://en.wikipedia.org/wiki/Musical_Symbols_(Unicode_block))
+
+### Bibliothèques similaires
+- [VexFlow](https://www.vexflow.com/) - Moteur de rendu musical (non utilisé ici pour rester vanilla)
+- [abcjs](https://abcjs.net/) - Notation ABC
+
+## 🚀 Déploiement
+
+### GitHub Pages
+
+1. Commit et push le projet
+2. Settings → Pages → Source: main branch
+3. L'app sera disponible à `https://[username].github.io/music-helper/`
+
+### Local
+
+Ouvrir simplement `index.html` dans un navigateur moderne (Chrome, Firefox, Safari, Edge).
+
+Aucun serveur requis ! 🎉
+
+## 🎓 Pour les débutants
+
+### Lire le code
+
+1. Commencez par `app.js` → Comprenez le flux utilisateur
+2. Regardez `parser.js` → Voyez comment le texte devient des données
+3. Explorez `renderer.js` → Découvrez le dessin sur Canvas
+
+### Concepts clés
+
+- **Canvas** : Zone de dessin pixel par pixel (comme Paint, mais en code)
+- **Parsing** : Transformer du texte en structures exploitables
+- **Regex** : Motifs pour reconnaître des patterns dans le texte
+- **Event listeners** : Écouter les actions utilisateur (clics, touches)
+
+### Exercices
+
+1. Changer les couleurs (dans `styles.css`)
+2. Ajouter un nouvel exemple (dans `handleExample()`)
+3. Modifier le tempo par défaut (dans `parseTempo()`)
+4. Dessiner un nouveau symbole sur la portée
+
+---
+
+**Créé avec ❤️ pour les musiciens et les développeurs débutants.**
+
+*Bonne musique et bon code ! 🎵💻*
