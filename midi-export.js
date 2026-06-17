@@ -21,6 +21,10 @@ class MidiExporter {
             'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
         };
 
+        if (!(note in noteValues)) {
+            throw new Error(`Unknown note: ${note}`);
+        }
+
         let semitone = noteValues[note];
 
         if (alteration === 'sharp') {
@@ -42,6 +46,10 @@ class MidiExporter {
      * @returns {Array} Liste d'événements MIDI triés par temps
      */
     generateMidiEvents(scoreData) {
+        if (!scoreData || !Array.isArray(scoreData.notes)) {
+            return [];
+        }
+
         const events = [];
         const ppq = 480;
         let currentTick = 0;
@@ -106,24 +114,18 @@ class MidiExporter {
      */
     writeVarLength(value) {
         const bytes = [];
-        let buffer = value & 0x7F;
 
-        while (value >>= 7) {
-            buffer <<= 8;
-            buffer |= 0x80;
-            buffer += (value & 0x7F);
+        // Extract 7-bit groups from LSB to MSB
+        bytes.push(value & 0x7F);
+        value >>= 7;
+
+        while (value > 0) {
+            bytes.push((value & 0x7F) | 0x80);
+            value >>= 7;
         }
 
-        while (true) {
-            bytes.push(buffer & 0xFF);
-            if (buffer & 0x80) {
-                buffer >>= 8;
-            } else {
-                break;
-            }
-        }
-
-        return bytes;
+        // Reverse to get MSB-first order
+        return bytes.reverse();
     }
 
     /**
@@ -212,6 +214,9 @@ class MidiExporter {
         }
 
         // Événement meta : Set Tempo (microsecondes par quarter note)
+        if (!scoreData.tempo || scoreData.tempo <= 0) {
+            throw new Error('Invalid tempo');
+        }
         const microsecondsPerQuarter = Math.round(60000000 / scoreData.tempo);
         trackData.push(0); // Delta time 0
         trackData.push(0xFF); // Meta event
@@ -222,6 +227,9 @@ class MidiExporter {
         trackData.push(microsecondsPerQuarter & 0xFF);
 
         // Événement meta : Time Signature
+        if (!scoreData.timeSignature) {
+            throw new Error('Missing timeSignature in scoreData');
+        }
         trackData.push(0); // Delta time 0
         trackData.push(0xFF); // Meta event
         trackData.push(0x58); // Time signature
