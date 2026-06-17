@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test MIDI</title></head>
+<body>
+<h2>MIDI Module Tests</h2>
+<div id="results"></div>
+
+<script src="midi.js"></script>
+<script>
+const results = document.getElementById('results');
+
+function assert(condition, message) {
+    const p = document.createElement('p');
+    if (condition) {
+        p.style.color = 'green';
+        p.textContent = 'PASS: ' + message;
+    } else {
+        p.style.color = 'red';
+        p.textContent = 'FAIL: ' + message;
+    }
+    results.appendChild(p);
+    return condition;
+}
+
+// Test 1: La classe existe
+assert(typeof MidiPlayer !== 'undefined', 'MidiPlayer class exists');
+
+if (typeof MidiPlayer !== 'undefined') {
+    const player = new MidiPlayer();
+    assert(player !== null, 'MidiPlayer can be instantiated');
+    assert(typeof player.play === 'function', 'play() method exists');
+    assert(typeof player.stop === 'function', 'stop() method exists');
+    assert(typeof player.initAudioContext === 'function', 'initAudioContext() method exists');
+    assert(typeof player.noteToFrequency === 'function', 'noteToFrequency() method exists');
+    assert(typeof player.generateMidiEvents === 'function', 'generateMidiEvents() method exists');
+    assert(typeof player.playNote === 'function', 'playNote() method exists');
+    assert(player.isPlaying === false, 'isPlaying initially false');
+}
+</script>
+</body>
+</html>
