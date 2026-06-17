@@ -348,7 +348,7 @@ class Renderer {
 
 
         // Dessine le point (pour les notes pointées)
-        if (note.duration === 3 || note.duration === 1.5 || note.duration === 6 || note.duration === 0.75 || note.duration === 0.375) {
+        if (this.isDotted(note)) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
@@ -400,6 +400,17 @@ class Renderer {
             const position = basePosition + (firstNote.octave * 7);
             const y = this.getYPosition(position, staffY);
             this.drawNoteStem(ctx, x, y, chord.duration);
+        }
+
+        // Dessine le point (pour les accords pointés, un pour tout l'accord)
+        if (this.isDotted(chord)) {
+            const basePosition = this.notePositions[firstNote.note][clef];
+            const position = basePosition + (firstNote.octave * 7);
+            const y = this.getYPosition(position, staffY);
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         return x;
@@ -598,5 +609,14 @@ class Renderer {
                 ctx.stroke();
             }
         }
+    }
+
+    /**
+     * Indique si une note ou un accord est pointé
+     * @param {Object} noteOrChord - note, ou accord
+     * @returns {boolean} - true si la note ou l'accord est pointé
+     */
+    isDotted(noteOrChord) {
+        return [0.375, 0.75, 1.5, 3, 6].indexOf(noteOrChord.duration) >= 0;
     }
 }
