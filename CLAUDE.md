@@ -418,23 +418,24 @@ drawNuance(ctx, nuance, x, staffY) {
 
 ## 🎵 Lecture MIDI
 
-L'application permet de lire la partition générée avec des sons MIDI natifs du navigateur.
+L'application permet de lire la partition générée avec une synthèse audio directe dans le navigateur.
 
 ### Fonctionnement
 
-1. **Génération MIDI en mémoire** :
-   - `MidiExporter.generateMidiFile()` génère un `Blob` MIDI (pas de téléchargement)
-   - Réutilise toute la logique de `buildHeaderChunk()` et `buildTrackChunk()`
+1. **Synthèse via Web Audio API** :
+   - Utilise `AudioContext` pour générer les sons directement
+   - Compatible avec **tous** les navigateurs modernes (Chrome, Firefox, Safari)
+   - Pas de dépendance au support MIDI natif du navigateur
 
-2. **Lecteur audio HTML natif** :
-   - Blob URL créé via `URL.createObjectURL()`
-   - Injecté dans un élément `<audio id="midi-player">`
-   - Lecture native par le navigateur (pas de synthèse Web Audio)
+2. **Génération des sons** :
+   - Conversion des notes MIDI en fréquences : `f = 440 × 2^((n - 69) / 12)`
+   - Oscillateurs sinusoïdaux programmés à l'avance
+   - Enveloppe ADSR simplifiée (Attack, Sustain, Release)
 
-3. **Gestion de l'état** :
-   - Le lecteur audio apparaît pendant la lecture
-   - Il se cache automatiquement à la fin
-   - Le bouton "Lire" / "Arrêter" se synchronise via les événements `play`, `pause`, `ended`
+3. **Programmation temporelle** :
+   - Calcul du timing basé sur le tempo et les ticks MIDI
+   - Tous les oscillateurs sont programmés à l'avance (pas de drift)
+   - Arrêt propre avec rampe de gain pour éviter les clics
 
 ### Architecture
 
@@ -443,11 +444,19 @@ L'application permet de lire la partition générée avec des sons MIDI natifs d
 **Classe** : `MidiAudioPlayer`
 
 **Méthodes principales** :
-- `init(audioElement, midiExporter)` → Initialise le lecteur
-- `play(scoreData)` → Génère le MIDI en mémoire et lance la lecture
-- `stop()` → Arrête la lecture et nettoie les ressources
-- `cleanup()` → Révoque le Blob URL (libère la mémoire)
+- `init(audioElement, midiExporter)` → Initialise le contexte audio
+- `play(scoreData)` → Programme et lance la lecture
+- `scheduleNote(midiNumber, startTime, duration)` → Programme une note individuelle
+- `stop()` → Arrête tous les oscillateurs en cours
+- `cleanup()` → Libère les ressources audio
 - `get isPlaying()` → Retourne l'état de lecture
+
+**Configuration audio** :
+- Type d'onde : `sine` (son doux)
+- Gain max : 0.3 (évite la saturation)
+- Attack : 10ms (évite les clics)
+- Sustain : 0.2 (volume stable)
+- Release : durée de la note (extinction progressive)
 
 ### État du bouton
 
@@ -455,17 +464,18 @@ L'application permet de lire la partition générée avec des sons MIDI natifs d
 - **Activé** : Après génération réussie
 - **Texte alternatif** : "🎵 Lire la partition" (repos) / "⏹️ Arrêter" (en lecture)
 
-### Avantages vs Web Audio API
+### Avantages
 
-- **Son natif** : Meilleure qualité (synthétiseur MIDI du système)
-- **Simplicité** : Pas de gestion manuelle d'oscillateurs/enveloppes
-- **Arrêt instantané** : Plus de problème de notes déjà programmées
-- **Contrôles natifs** : L'élément `<audio>` offre des contrôles standards (play, pause, timeline)
+- **Compatibilité universelle** : Fonctionne sur Chrome, Firefox, Safari (desktop et mobile)
+- **Arrêt instantané** : Stop propre avec rampe de gain (pas de clics)
+- **Léger** : Aucune dépendance externe, synthèse native JavaScript
+- **Contrôle total** : Possibilité d'ajuster l'enveloppe et le timbre
 
 ### Limitations
 
-- **Support navigateur** : Certains navigateurs ne lisent pas les fichiers MIDI (notamment Safari mobile)
-- **Pas de personnalisation audio** : Le son dépend du synthétiseur MIDI du système (pas de contrôle du timbre)
+- **Son synthétique** : Oscillateurs simples (pas de son réaliste de piano/orchestre)
+- **Pas de nuances** : Toutes les notes au même volume
+- **Timbre fixe** : Onde sinusoïdale uniquement (pourrait être enrichi avec `triangle`, `sawtooth`, etc.)
 
 ## 🐛 Bugs connus / Limitations
 
@@ -478,8 +488,8 @@ L'application permet de lire la partition générée avec des sons MIDI natifs d
 - ⚠️ Pas de support multi-voix
 - ✅ ~~Pas d'export PNG~~ → Implémenté
 - ✅ ~~Pas d'export MIDI~~ → Implémenté
-- ✅ ~~Lecture MIDI via Web Audio API (limitations)~~ → Remplacé par lecteur audio natif
-- ⚠️ Lecture MIDI : dépend du support navigateur (certains mobiles Safari ne lisent pas les fichiers MIDI)
+- ✅ ~~Lecture MIDI : problème de support navigateur (Chrome)~~ → Corrigé via Web Audio API
+- ⚠️ Lecture MIDI : son synthétique (oscillateurs simples), pas de son réaliste
 - ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
 
 ## 📚 Ressources
