@@ -166,6 +166,32 @@ class MidiExporter {
     }
 
     /**
+     * Construit le chunk header MIDI (MThd)
+     * @param {number} ppq - Pulses per quarter note
+     * @returns {Array<number>} Bytes du header chunk
+     */
+    buildHeaderChunk(ppq) {
+        const bytes = [];
+
+        // "MThd" (4 bytes)
+        bytes.push(...this.writeString('MThd'));
+
+        // Taille du header (toujours 6 bytes)
+        bytes.push(...this.writeUint32(6));
+
+        // Format 0 (single track)
+        bytes.push(...this.writeUint16(0));
+
+        // Nombre de pistes (1)
+        bytes.push(...this.writeUint16(1));
+
+        // Division temporelle (ticks per quarter note)
+        bytes.push(...this.writeUint16(ppq));
+
+        return bytes;
+    }
+
+    /**
      * Exporte la partition en fichier MIDI et déclenche le téléchargement
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
