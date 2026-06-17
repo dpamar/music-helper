@@ -372,7 +372,9 @@ class Renderer {
 
             // Tête de note
             this.drawNoteHead(ctx, x, y, chord.duration);
-			this.drawNoteStem(ctx, x, y, 1);
+			if (chord.duration < 4 ) {
+				this.drawNoteStem(ctx, x, y, 1);
+			}
 
 
             // Altération
