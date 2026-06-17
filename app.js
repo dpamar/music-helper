@@ -8,6 +8,7 @@
 // Instances globales
 let parser;
 let renderer;
+let midiPlayer;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
 /**
@@ -18,6 +19,7 @@ function init() {
     // Crée les instances
     parser = new Parser();
     renderer = new Renderer();
+    midiPlayer = new MidiPlayer();
 
     // Récupère les éléments DOM
     const btnRender = document.getElementById('btn-render');
@@ -27,11 +29,14 @@ function init() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
 
+    const btnPlay = document.getElementById('btn-play');
+
     // Attache les événements
     btnRender.addEventListener('click', handleRender);
     btnExample.addEventListener('click', handleExample);
     btnClear.addEventListener('click', handleClear);
     btnExportPNG.addEventListener('click', handleExportPNG);
+    btnPlay.addEventListener('click', handlePlay);
 
     // Permet de générer avec Ctrl+Enter dans le textarea
     textarea.addEventListener('keydown', (e) => {
@@ -72,8 +77,9 @@ function handleRender() {
         renderer.render(scoreData, outputDiv);
         console.log('✅ Partition rendue');
 
-        // Active le bouton d'export
+        // Active les boutons d'export et de lecture
         setExportButtonState(true);
+        setPlayButtonState(true);
 
     } catch (error) {
         // Affiche l'erreur
@@ -81,8 +87,9 @@ function handleRender() {
         errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
 
-        // Désactive le bouton d'export en cas d'erreur
+        // Désactive les boutons d'export et de lecture en cas d'erreur
         setExportButtonState(false);
+        setPlayButtonState(false);
 
         // Scroll vers l'erreur
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -144,8 +151,9 @@ function handleClear() {
 
     currentScoreData = null; // Efface les données stockées
 
-    // Désactive le bouton d'export
+    // Désactive les boutons d'export et de lecture
     setExportButtonState(false);
+    setPlayButtonState(false);
 
     // Focus sur le textarea
     textarea.focus();
@@ -200,12 +208,65 @@ function handleExportPNG() {
 }
 
 /**
+ * Gère le clic sur "Lire la partition" / "Arrêter"
+ */
+function handlePlay() {
+    const btnPlay = document.getElementById('btn-play');
+    const errorDiv = document.getElementById('error-message');
+
+    try {
+        errorDiv.style.display = 'none';
+
+        if (!currentScoreData) {
+            throw new Error('Veuillez d\'abord générer une partition');
+        }
+
+        if (midiPlayer.isPlaying) {
+            midiPlayer.stop();
+            btnPlay.textContent = '🎵 Lire la partition';
+        } else {
+            midiPlayer.initAudioContext();
+            midiPlayer.play(currentScoreData);
+            btnPlay.textContent = '⏹️ Arrêter';
+
+            const quarterDuration = 60 / currentScoreData.tempo;
+            let totalDuration = 0;
+            for (const note of currentScoreData.notes) {
+                totalDuration += note.duration * quarterDuration;
+            }
+
+            setTimeout(() => {
+                if (!midiPlayer.isPlaying) {
+                    btnPlay.textContent = '🎵 Lire la partition';
+                }
+            }, totalDuration * 1000 + 500);
+        }
+
+    } catch (error) {
+        console.error('❌ Erreur lecture:', error.message);
+        errorDiv.textContent = '❌ ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
  * Active ou désactive le bouton d'export PNG
  */
 function setExportButtonState(enabled) {
     const btnExportPNG = document.getElementById('btn-export-png');
     if (btnExportPNG) {
         btnExportPNG.disabled = !enabled;
+    }
+}
+
+/**
+ * Active ou désactive le bouton de lecture
+ */
+function setPlayButtonState(enabled) {
+    const btnPlay = document.getElementById('btn-play');
+    if (btnPlay) {
+        btnPlay.disabled = !enabled;
     }
 }
 

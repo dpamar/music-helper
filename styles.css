@@ -188,6 +188,10 @@ button {
 .export-actions {
     margin-top: 20px;
     text-align: center;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .export-actions button {
@@ -202,6 +206,10 @@ button {
 .export-actions button:disabled:hover {
     transform: none;
     box-shadow: none;
+}
+
+#btn-play:not(:disabled):active {
+    transform: scale(0.98);
 }
 
 /* Responsive */

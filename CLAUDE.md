@@ -22,6 +22,7 @@ music-helper/
 ├── styles.css          # Design et mise en page
 ├── parser.js           # Parse la notation textuelle → structures de données
 ├── renderer.js         # Rendu graphique Canvas → portée musicale
+├── midi.js             # Synthèse et lecture MIDI via Web Audio API
 ├── app.js              # Orchestration et gestion des événements
 └── CLAUDE.md           # Ce fichier
 ```
@@ -336,6 +337,53 @@ drawNuance(ctx, nuance, x, staffY) {
   - `drawLedgerLines()` (lignes supplémentaires)
   - Les octaves (multiplication par 7)
 - **Tester exhaustivement** : Do, Ré, Mi en octave médium, +, ++, -, --
+
+## 🎵 Lecture MIDI
+
+L'application permet de lire la partition générée avec un son de piano synthétique.
+
+### Fonctionnement
+
+1. **Génération d'événements** :
+   - `MidiPlayer.generateMidiEvents()` convertit `scoreData.notes` en timeline d'événements temporisés
+   - Chaque événement contient : {time, type, notes, duration}
+   - Le tempo définit la durée d'une noire : `60 / tempo` secondes
+
+2. **Synthèse audio** :
+   - Utilise Web Audio API (native, pas de bibliothèque externe)
+   - Oscillateurs type "triangle" pour un son proche du piano
+   - Enveloppe ADSR simplifiée : Attack 10ms, Decay 100ms, Sustain 70%, Release 100ms
+
+3. **Conversion notes → fréquences** :
+   - Système tempéré à 440 Hz (La médium)
+   - Formule : `f = 440 * 2^((n - 69) / 12)` où n = numéro MIDI
+   - Octave 0 = médium (C0 = C4 standard = 261.63 Hz)
+
+### Architecture
+
+**Module** : `midi.js`
+
+**Classe** : `MidiPlayer`
+
+**Méthodes principales** :
+- `initAudioContext()` → Initialise Web Audio (requis après interaction utilisateur)
+- `generateMidiEvents(scoreData)` → Génère la timeline
+- `play(scoreData)` → Lance la lecture
+- `stop()` → Arrête la lecture
+- `noteToFrequency(note, alteration, octave)` → Convertit note en Hz
+- `playNote(frequency, startTime, duration)` → Joue une note via oscillateur
+
+### État du bouton
+
+- **Désactivé** : Au chargement, après "Effacer", en cas d'erreur
+- **Activé** : Après génération réussie
+- **Texte alternatif** : "🎵 Lire la partition" (repos) / "⏹️ Arrêter" (en lecture)
+
+### Limitations connues
+
+- Les notes déjà programmées dans Web Audio ne peuvent pas être annulées (limitation de l'API)
+- Son de piano simpliste (oscillateur triangle + ADSR basique)
+- Pas de réverbération, pédale, ou vélocité variable
 
 ## 🐛 Bugs connus / Limitations
 
