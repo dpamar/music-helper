@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - MIDI Export</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : MIDI Export - MidiExporter</h1>
+    <div id="results"></div>
+
+    <script src="../midi-export.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        // Test: MidiExporter class exists
+        assert(typeof MidiExporter === 'function', 'MidiExporter class exists');
+
+        const exporter = new MidiExporter();
+
+        // Test: noteToMidiNumber exists
+        assert(typeof exporter.noteToMidiNumber === 'function', 'noteToMidiNumber method exists');
+
+        // Test: C4 (Do médium) = 60
+        assert(exporter.noteToMidiNumber('C', '', 0) === 60, 'C octave 0 = MIDI 60 (Do médium)');
+
+        // Test: D4 = 62
+        assert(exporter.noteToMidiNumber('D', '', 0) === 62, 'D octave 0 = MIDI 62');
+
+        // Test: E4 = 64
+        assert(exporter.noteToMidiNumber('E', '', 0) === 64, 'E octave 0 = MIDI 64');
+
+        // Test: F4 = 65
+        assert(exporter.noteToMidiNumber('F', '', 0) === 65, 'F octave 0 = MIDI 65');
+
+        // Test: G4 = 67
+        assert(exporter.noteToMidiNumber('G', '', 0) === 67, 'G octave 0 = MIDI 67');
+
+        // Test: A4 = 69
+        assert(exporter.noteToMidiNumber('A', '', 0) === 69, 'A octave 0 = MIDI 69');
+
+        // Test: B4 = 71
+        assert(exporter.noteToMidiNumber('B', '', 0) === 71, 'B octave 0 = MIDI 71');
+
+        // Test: C# = 61
+        assert(exporter.noteToMidiNumber('C', 'sharp', 0) === 61, 'C# octave 0 = MIDI 61');
+
+        // Test: Eb = 63
+        assert(exporter.noteToMidiNumber('E', 'flat', 0) === 63, 'Eb octave 0 = MIDI 63');
+
+        // Test: octave +1 adds 12
+        assert(exporter.noteToMidiNumber('C', '', 1) === 72, 'C octave +1 = MIDI 72');
+
+        // Test: octave -1 subtracts 12
+        assert(exporter.noteToMidiNumber('C', '', -1) === 48, 'C octave -1 = MIDI 48');
+
+        // Test: octave +2
+        assert(exporter.noteToMidiNumber('C', '', 2) === 84, 'C octave +2 = MIDI 84');
+
+        // Test: octave -2
+        assert(exporter.noteToMidiNumber('C', '', -2) === 36, 'C octave -2 = MIDI 36');
+
+        // Test: C# octave +1 = 73
+        assert(exporter.noteToMidiNumber('C', 'sharp', 1) === 73, 'C# octave +1 = MIDI 73');
+
+        // Test: Eb octave -1 = 51
+        assert(exporter.noteToMidiNumber('E', 'flat', -1) === 51, 'Eb octave -1 = MIDI 51');
+
+        // Test: natural treated as no alteration
+        assert(exporter.noteToMidiNumber('C', 'natural', 0) === 60, 'C natural octave 0 = MIDI 60');
+
+        // Test: clamping to 0-127
+        assert(exporter.noteToMidiNumber('C', 'flat', -2) >= 0, 'MIDI number clamped >= 0');
+        assert(exporter.noteToMidiNumber('B', 'sharp', 2) <= 127, 'MIDI number clamped <= 127');
+
+        // Test: export method exists
+        assert(typeof exporter.export === 'function', 'export method exists');
+
+        displayResults();
+    </script>
+</body>
+</html>
