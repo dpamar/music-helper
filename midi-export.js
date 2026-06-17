@@ -113,6 +113,13 @@ class MidiExporter {
      * @returns {Array<number>} Bytes encodés
      */
     writeVarLength(value) {
+        if (value < 0) {
+            throw new Error(`VLQ value cannot be negative: ${value}`);
+        }
+        if (value > 0x0FFFFFFF) {
+            throw new Error(`VLQ value exceeds MIDI maximum (268435455): ${value}`);
+        }
+
         const bytes = [];
 
         // Extract 7-bit groups from LSB to MSB
@@ -215,7 +222,7 @@ class MidiExporter {
 
         // Événement meta : Set Tempo (microsecondes par quarter note)
         if (!scoreData.tempo || scoreData.tempo <= 0) {
-            throw new Error('Invalid tempo');
+            throw new Error(`Invalid tempo: ${scoreData.tempo}. Must be a positive number.`);
         }
         const microsecondsPerQuarter = Math.round(60000000 / scoreData.tempo);
         trackData.push(0); // Delta time 0
