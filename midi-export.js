@@ -280,6 +280,24 @@ class MidiExporter {
     }
 
     /**
+     * Génère un Blob MIDI en mémoire (sans téléchargement)
+     * @param {Object} scoreData - Données de partition parsées
+     * @returns {Blob} Blob MIDI de type 'audio/midi'
+     */
+    generateMidiFile(scoreData) {
+        const ppq = 480;
+
+        const events = this.generateMidiEvents(scoreData);
+
+        const headerBytes = this.buildHeaderChunk(ppq);
+        const trackBytes = this.buildTrackChunk(scoreData, events);
+
+        const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
+
+        return new Blob([midiBytes], { type: 'audio/midi' });
+    }
+
+    /**
      * Exporte la partition en fichier MIDI et déclenche le téléchargement
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
