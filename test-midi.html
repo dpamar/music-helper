@@ -5,6 +5,12 @@
 <h2>MIDI Module Tests</h2>
 <div id="results"></div>
 
+<hr>
+<h2>Audio Tests (manual)</h2>
+<button id="test-sound" style="font-size:20px; padding:10px">
+    Test sound (Do medium)
+</button>
+
 <script src="midi.js"></script>
 <script>
 const results = document.getElementById('results');
@@ -87,6 +93,16 @@ if (typeof MidiPlayer !== 'undefined') {
     assert(events[2].notes.length === 3, `Chord event has 3 notes, got ${events[2].notes.length}`);
     assert(Math.abs(events[2].duration - 1.0) < 0.001, `Chord duration is 1.0s (blanche at 120bpm), got ${events[2].duration}`);
 }
+
+// Audio test button
+document.getElementById('test-sound').addEventListener('click', () => {
+    const player = new MidiPlayer();
+    player.initAudioContext();
+    const freq = player.noteToFrequency('C', '', 0);
+    const startTime = player.audioContext.currentTime;
+    player.playNote(freq, startTime, 1.0);
+    console.log('Playing C4 (Do medium) for 1 second...');
+});
 </script>
 </body>
 </html>

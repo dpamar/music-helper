@@ -83,5 +83,41 @@ class MidiPlayer {
     }
 
     playNote(frequency, startTime, duration) {
+        if (!this.audioContext) {
+            throw new Error('AudioContext not initialized. Call initAudioContext() first.');
+        }
+
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+
+        const attackTime = 0.01;
+        const decayTime = 0.1;
+        const sustainLevel = 0.7;
+        const releaseTime = this.sustainTime;
+
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(this.masterVolume, startTime + attackTime);
+        gainNode.gain.linearRampToValueAtTime(
+            this.masterVolume * sustainLevel,
+            startTime + attackTime + decayTime
+        );
+
+        const releaseStart = startTime + duration;
+        gainNode.gain.setValueAtTime(this.masterVolume * sustainLevel, releaseStart);
+        gainNode.gain.linearRampToValueAtTime(0, releaseStart + releaseTime);
+
+        oscillator.start(startTime);
+        oscillator.stop(releaseStart + releaseTime);
+
+        oscillator.onended = () => {
+            oscillator.disconnect();
+            gainNode.disconnect();
+        };
     }
 }
