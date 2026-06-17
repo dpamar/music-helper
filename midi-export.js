@@ -41,6 +41,19 @@ class MidiExporter {
     }
 
     /**
+     * Calcule l'altération réelle d'une note à partir de la note
+     * et des altérations à l'armure
+     * @param {Object} note - la note
+     * @param {Map} keySignature - altérations à l'armure
+     * @returns {String} Altération à prendre en compte.
+     */
+    computeAlteration(note, keySignature) {
+        // Altération explicite : on la prend telle quelle
+        // Pas d'altération : on regarde à l'armure (ou on renvoie "pas d'altération")
+        return note.alteration || keySignature[note.note] || '';
+    }
+
+    /**
      * Génère les événements MIDI à partir des données de partition
      * @param {Object} scoreData - Données parsées (tempo, notes, etc.)
      * @returns {Array} Liste d'événements MIDI triés par temps
@@ -54,13 +67,16 @@ class MidiExporter {
         const ppq = 480;
         let currentTick = 0;
 
+        const signatures = [];
+        scoreData.keySignature.map(x=>signatures[x.note] = x.alteration)
+
         for (const item of scoreData.notes) {
             const durationTicks = Math.round(item.duration * ppq);
 
             if (item.type === 'rest') {
                 currentTick += durationTicks;
             } else if (item.type === 'note') {
-                const midiNumber = this.noteToMidiNumber(item.note, item.alteration, item.octave);
+                const midiNumber = this.noteToMidiNumber(item.note, this.computeAlteration(item, signatures), item.octave);
                 events.push({
                     tick: currentTick,
                     type: 'note_on',
@@ -80,7 +96,7 @@ class MidiExporter {
                 for (const noteData of item.notes) {
                     const midiNumber = this.noteToMidiNumber(
                         noteData.note,
-                        noteData.alteration,
+                        this.computeAlteration(noteData, signatures),
                         noteData.octave
                     );
                     events.push({
