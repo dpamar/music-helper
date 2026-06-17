@@ -72,8 +72,9 @@ function handleRender() {
         renderer.render(scoreData, outputDiv);
         console.log('✅ Partition rendue');
 
-        // Active le bouton d'export
+        // Active les boutons d'export et de lecture
         setExportButtonState(true);
+        setPlayButtonState(true);
 
     } catch (error) {
         // Affiche l'erreur
@@ -81,8 +82,9 @@ function handleRender() {
         errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
 
-        // Désactive le bouton d'export en cas d'erreur
+        // Désactive les boutons d'export et de lecture en cas d'erreur
         setExportButtonState(false);
+        setPlayButtonState(false);
 
         // Scroll vers l'erreur
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -144,8 +146,9 @@ function handleClear() {
 
     currentScoreData = null; // Efface les données stockées
 
-    // Désactive le bouton d'export
+    // Désactive les boutons d'export et de lecture
     setExportButtonState(false);
+    setPlayButtonState(false);
 
     // Focus sur le textarea
     textarea.focus();
@@ -206,6 +209,16 @@ function setExportButtonState(enabled) {
     const btnExportPNG = document.getElementById('btn-export-png');
     if (btnExportPNG) {
         btnExportPNG.disabled = !enabled;
+    }
+}
+
+/**
+ * Active ou désactive le bouton de lecture
+ */
+function setPlayButtonState(enabled) {
+    const btnPlay = document.getElementById('btn-play');
+    if (btnPlay) {
+        btnPlay.disabled = !enabled;
     }
 }
 
