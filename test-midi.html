@@ -58,6 +58,34 @@ if (typeof MidiPlayer !== 'undefined') {
     if (allFreqPass) {
         assert(true, 'All frequency conversions correct');
     }
+
+    // Test 3: MIDI events generation
+    const testScore = {
+        title: 'Test',
+        tempo: 120,
+        timeSignature: {numerator: 4, denominator: 4},
+        clef: 'sol',
+        keySignature: [],
+        notes: [
+            {type: 'note', note: 'C', alteration: '', octave: 0, duration: 1},
+            {type: 'note', note: 'D', alteration: '', octave: 0, duration: 1},
+            {type: 'rest', duration: 1},
+            {type: 'chord', notes: [
+                {note: 'C', alteration: '', octave: 0},
+                {note: 'E', alteration: '', octave: 0},
+                {note: 'G', alteration: '', octave: 0}
+            ], duration: 2}
+        ]
+    };
+
+    const events = player.generateMidiEvents(testScore);
+    // 120 BPM = 0.5s per quarter note
+    assert(events.length === 3, `generateMidiEvents returns 3 events (notes+chord, not rests), got ${events.length}`);
+    assert(Math.abs(events[0].time - 0) < 0.001, `Event 0 at time 0, got ${events[0].time}`);
+    assert(Math.abs(events[1].time - 0.5) < 0.001, `Event 1 at time 0.5, got ${events[1].time}`);
+    assert(Math.abs(events[2].time - 1.5) < 0.001, `Event 2 at time 1.5 (after rest), got ${events[2].time}`);
+    assert(events[2].notes.length === 3, `Chord event has 3 notes, got ${events[2].notes.length}`);
+    assert(Math.abs(events[2].duration - 1.0) < 0.001, `Chord duration is 1.0s (blanche at 120bpm), got ${events[2].duration}`);
 }
 </script>
 </body>

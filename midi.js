@@ -23,7 +23,37 @@ class MidiPlayer {
     }
 
     generateMidiEvents(scoreData) {
-        return [];
+        const events = [];
+        let currentTime = 0;
+        const quarterNoteDuration = 60 / scoreData.tempo;
+
+        for (const item of scoreData.notes) {
+            if (item.type === 'rest') {
+                currentTime += item.duration * quarterNoteDuration;
+            } else if (item.type === 'note') {
+                const frequency = this.noteToFrequency(item.note, item.alteration, item.octave);
+                events.push({
+                    time: currentTime,
+                    type: 'note',
+                    notes: [{frequency}],
+                    duration: item.duration * quarterNoteDuration
+                });
+                currentTime += item.duration * quarterNoteDuration;
+            } else if (item.type === 'chord') {
+                const frequencies = item.notes.map(n => ({
+                    frequency: this.noteToFrequency(n.note, n.alteration, n.octave)
+                }));
+                events.push({
+                    time: currentTime,
+                    type: 'chord',
+                    notes: frequencies,
+                    duration: item.duration * quarterNoteDuration
+                });
+                currentTime += item.duration * quarterNoteDuration;
+            }
+        }
+
+        return events;
     }
 
     async play(scoreData) {
