@@ -7,7 +7,7 @@ Application web client-side pour saisir et afficher des partitions musicales en 
 Cette application permet aux musiciens de :
 - Saisir une partition en notation textuelle simplifiée (notation française)
 - Générer automatiquement un rendu graphique sur portée musicale (Canvas HTML5)
-- Exporter (PNG disponible, PDF en développement)
+- Exporter (PNG et MIDI disponibles, PDF en développement)
 
 **Contraintes techniques :**
 - 100% client-side (HTML/CSS/JS vanilla, aucun framework)
@@ -23,6 +23,7 @@ music-helper/
 ├── parser.js           # Parse la notation textuelle → structures de données
 ├── renderer.js         # Rendu graphique Canvas → portée musicale
 ├── midi.js             # Synthèse et lecture MIDI via Web Audio API
+├── midi-export.js      # Export de fichiers MIDI (téléchargement .mid)
 ├── app.js              # Orchestration et gestion des événements
 └── CLAUDE.md           # Ce fichier
 ```
@@ -294,6 +295,83 @@ L'application permet d'exporter la partition générée sous forme d'image PNG.
 - **Activé** :
   - Après une génération réussie de la partition
 
+## 🎹 Export MIDI
+
+L'application permet d'exporter la partition générée sous forme de fichier MIDI standard (.mid).
+
+### Fonctionnement
+
+1. **Format MIDI** :
+   - Standard MIDI File (SMF) Format 0 (piste unique)
+   - Encodage binaire selon la spécification MIDI 1.0
+   - PPQ (Pulses Per Quarter note) = 480 ticks
+
+2. **Structure du fichier** :
+   - **Header chunk (MThd)** : Format, nombre de pistes, division temporelle
+   - **Track chunk (MTrk)** : Événements MIDI (tempo, time signature, notes)
+
+3. **Événements générés** :
+   - **Meta events** :
+     - Track Name (0xFF 0x03) : titre de la partition
+     - Set Tempo (0xFF 0x51) : tempo en microsecondes par noire
+     - Time Signature (0xFF 0x58) : chiffrage de mesure
+   - **Note events** :
+     - Note On (0x90) : début de note
+     - Note Off (0x80) : fin de note
+   - **End of Track (0xFF 0x2F)** : fin du track
+
+4. **Conversion notes → MIDI** :
+   - Système MIDI standard : C4 (Do médium) = 60
+   - Plage MIDI : 0-127 (clamping automatique)
+   - Altérations : dièse +1 demi-ton, bémol -1 demi-ton
+
+5. **Nom du fichier** :
+   - Basé sur le titre de la partition (nettoyage identique à PNG)
+   - Exemple : `"Au clair de la lune"` → `au-clair-de-la-lune.mid`
+   - Par défaut : `partition.mid` si pas de titre
+
+6. **Téléchargement** :
+   - Blob de type `audio/midi`
+   - Lien temporaire avec attribut `download`
+   - Nettoyage automatique après téléchargement
+
+### Module midi-export.js
+
+**Classe** : `MidiExporter`
+
+**Méthodes principales** :
+- `noteToMidiNumber(note, alteration, octave)` → number (0-127)
+- `generateMidiEvents(scoreData)` → Array (événements MIDI avec ticks)
+- `buildHeaderChunk(ppq)` → Array (bytes du header MThd)
+- `buildTrackChunk(scoreData, events)` → Array (bytes du track MTrk)
+- `export(scoreData, filename)` → void (génère et télécharge le fichier)
+
+**Fonctions utilitaires** :
+- `writeVarLength(value)` → Array (Variable Length Quantity MIDI)
+- `writeString(str)` → Array (bytes ASCII)
+- `writeUint16(value)` → Array (2 bytes big-endian)
+- `writeUint32(value)` → Array (4 bytes big-endian)
+
+### État du bouton
+
+- **Désactivé** : Au chargement, après "Effacer", en cas d'erreur
+- **Activé** : Après génération réussie de la partition
+
+### Limitations
+
+- Format 0 uniquement (piste unique, pas de multi-pistes)
+- Pas de support des nuances (velocity fixe à 80)
+- Pas d'informations de clef ou d'armure dans le fichier MIDI
+- Pas de support des ornements ou articulations
+
+### Compatibilité
+
+Les fichiers MIDI générés sont compatibles avec :
+- Lecteurs audio : VLC, Windows Media Player, QuickTime
+- Logiciels de notation : MuseScore, Finale, Sibelius
+- DAWs : GarageBand, Logic Pro, Ableton Live, FL Studio
+- Synthétiseurs et instruments MIDI externes
+
 ## 🔧 Comment ajouter une fonctionnalité
 
 ### Ajouter un nouveau symbole musical
@@ -395,6 +473,7 @@ L'application permet de lire la partition générée avec un son de piano synth�
 - ⚠️ Pas de validation de la cohérence des mesures (sous-remplies ou sur-remplies)
 - ⚠️ Pas de support multi-voix
 - ✅ ~~Pas d'export PNG~~ → Implémenté
+- ✅ ~~Pas d'export MIDI~~ → Implémenté
 - ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
 
 ## 📚 Ressources

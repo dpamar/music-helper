@@ -9,6 +9,7 @@
 let parser;
 let renderer;
 let midiPlayer;
+let midiExporter;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
 /**
@@ -20,12 +21,14 @@ function init() {
     parser = new Parser();
     renderer = new Renderer();
     midiPlayer = new MidiPlayer();
+    midiExporter = new MidiExporter();
 
     // Récupère les éléments DOM
     const btnRender = document.getElementById('btn-render');
     const btnExample = document.getElementById('btn-example');
     const btnClear = document.getElementById('btn-clear');
     const btnExportPNG = document.getElementById('btn-export-png');
+    const btnExportMIDI = document.getElementById('btn-export-midi');
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
 
@@ -36,6 +39,7 @@ function init() {
     btnExample.addEventListener('click', handleExample);
     btnClear.addEventListener('click', handleClear);
     btnExportPNG.addEventListener('click', handleExportPNG);
+    btnExportMIDI.addEventListener('click', handleExportMIDI);
     btnPlay.addEventListener('click', handlePlay);
 
     // Permet de générer avec Ctrl+Enter dans le textarea
@@ -208,6 +212,43 @@ function handleExportPNG() {
 }
 
 /**
+ * Gère le clic sur "Exporter en MIDI"
+ * Génère un fichier MIDI et déclenche le téléchargement
+ */
+function handleExportMIDI() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (!currentScoreData) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        let filename = 'partition';
+
+        if (currentScoreData.title && currentScoreData.title.trim()) {
+            filename = currentScoreData.title.trim()
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+        }
+
+        midiExporter.export(currentScoreData, filename);
+
+    } catch (error) {
+        errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
  * Gère le clic sur "Lire la partition" / "Arrêter"
  */
 function handlePlay() {
@@ -251,12 +292,16 @@ function handlePlay() {
 }
 
 /**
- * Active ou désactive le bouton d'export PNG
+ * Active ou désactive les boutons d'export (PNG et MIDI)
  */
 function setExportButtonState(enabled) {
     const btnExportPNG = document.getElementById('btn-export-png');
+    const btnExportMIDI = document.getElementById('btn-export-midi');
     if (btnExportPNG) {
         btnExportPNG.disabled = !enabled;
+    }
+    if (btnExportMIDI) {
+        btnExportMIDI.disabled = !enabled;
     }
 }
 
