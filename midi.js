@@ -103,6 +103,9 @@ class MidiPlayer {
 
         this.isPlaying = false;
         this.scheduledNotes = [];
+        this.audioContext.close();
+        this.audioContext = null;
+        this.initAudioContext();
 
         if (this._stopTimeout) {
             clearTimeout(this._stopTimeout);
