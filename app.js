@@ -37,6 +37,21 @@ function init() {
     // Initialise le lecteur audio
     midiAudioPlayer.init(audioElement, midiExporter);
 
+    // Écoute les événements de l'élément audio pour mettre à jour le bouton
+    audioElement.addEventListener('play', () => {
+        btnPlay.textContent = '⏹️ Arrêter';
+    });
+
+    audioElement.addEventListener('pause', () => {
+        if (audioElement.ended || audioElement.currentTime === 0) {
+            btnPlay.textContent = '🎵 Lire la partition';
+        }
+    });
+
+    audioElement.addEventListener('ended', () => {
+        btnPlay.textContent = '🎵 Lire la partition';
+    });
+
     // Attache les événements
     btnRender.addEventListener('click', handleRender);
     btnExample.addEventListener('click', handleExample);
