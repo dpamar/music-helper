@@ -35,6 +35,29 @@ if (typeof MidiPlayer !== 'undefined') {
     assert(typeof player.generateMidiEvents === 'function', 'generateMidiEvents() method exists');
     assert(typeof player.playNote === 'function', 'playNote() method exists');
     assert(player.isPlaying === false, 'isPlaying initially false');
+
+    // Test 2: Frequency conversion
+    const freqTests = [
+        {note: 'A', alt: '', oct: 0, expected: 440},
+        {note: 'C', alt: '', oct: 0, expected: 261.63},
+        {note: 'C', alt: 'sharp', oct: 0, expected: 277.18},
+        {note: 'C', alt: '', oct: 1, expected: 523.25},
+        {note: 'C', alt: '', oct: -1, expected: 130.81},
+        {note: 'C', alt: 'flat', oct: 0, expected: 246.94},
+        {note: 'B', alt: '', oct: 0, expected: 493.88}
+    ];
+
+    let allFreqPass = true;
+    for (const t of freqTests) {
+        const freq = player.noteToFrequency(t.note, t.alt, t.oct);
+        if (Math.abs(freq - t.expected) > 0.1) {
+            assert(false, `noteToFrequency(${t.note}, ${t.alt}, ${t.oct}) = ${freq.toFixed(2)}, expected ${t.expected}`);
+            allFreqPass = false;
+        }
+    }
+    if (allFreqPass) {
+        assert(true, 'All frequency conversions correct');
+    }
 }
 </script>
 </body>

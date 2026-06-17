@@ -33,7 +33,23 @@ class MidiPlayer {
     }
 
     noteToFrequency(note, alteration, octave) {
-        return 440;
+        const noteValues = {
+            'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+        };
+
+        let semitone = noteValues[note];
+
+        if (alteration === 'sharp') {
+            semitone += 1;
+        } else if (alteration === 'flat') {
+            semitone -= 1;
+        }
+
+        semitone += octave * 12;
+
+        // MIDI number: C4 (Do médium) = 60, A4 = 69 = 440 Hz
+        const midiNumber = 60 + semitone;
+        return 440 * Math.pow(2, (midiNumber - 69) / 12);
     }
 
     playNote(frequency, startTime, duration) {
