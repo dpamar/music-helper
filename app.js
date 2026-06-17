@@ -8,6 +8,7 @@
 // Instances globales
 let parser;
 let renderer;
+let midiPlayer;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
 /**
@@ -18,6 +19,7 @@ function init() {
     // Crée les instances
     parser = new Parser();
     renderer = new Renderer();
+    midiPlayer = new MidiPlayer();
 
     // Récupère les éléments DOM
     const btnRender = document.getElementById('btn-render');
@@ -27,11 +29,14 @@ function init() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
 
+    const btnPlay = document.getElementById('btn-play');
+
     // Attache les événements
     btnRender.addEventListener('click', handleRender);
     btnExample.addEventListener('click', handleExample);
     btnClear.addEventListener('click', handleClear);
     btnExportPNG.addEventListener('click', handleExportPNG);
+    btnPlay.addEventListener('click', handlePlay);
 
     // Permet de générer avec Ctrl+Enter dans le textarea
     textarea.addEventListener('keydown', (e) => {
@@ -197,6 +202,49 @@ function handleExportPNG() {
 
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export: ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Gère le clic sur "Lire la partition" / "Arrêter"
+ */
+function handlePlay() {
+    const btnPlay = document.getElementById('btn-play');
+    const errorDiv = document.getElementById('error-message');
+
+    try {
+        errorDiv.style.display = 'none';
+
+        if (!currentScoreData) {
+            throw new Error('Veuillez d\'abord générer une partition');
+        }
+
+        if (midiPlayer.isPlaying) {
+            midiPlayer.stop();
+            btnPlay.textContent = '🎵 Lire la partition';
+        } else {
+            midiPlayer.initAudioContext();
+            midiPlayer.play(currentScoreData);
+            btnPlay.textContent = '⏹️ Arrêter';
+
+            const quarterDuration = 60 / currentScoreData.tempo;
+            let totalDuration = 0;
+            for (const note of currentScoreData.notes) {
+                totalDuration += note.duration * quarterDuration;
+            }
+
+            setTimeout(() => {
+                if (!midiPlayer.isPlaying) {
+                    btnPlay.textContent = '🎵 Lire la partition';
+                }
+            }, totalDuration * 1000 + 500);
+        }
+
+    } catch (error) {
+        console.error('❌ Erreur lecture:', error.message);
+        errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
