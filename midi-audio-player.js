@@ -55,12 +55,19 @@ class MidiAudioPlayer {
 
         this.currentBlobURL = URL.createObjectURL(midiBlob);
 
+        // Vérifie si le navigateur peut lire le MIDI
+        const canPlayMidi = this.audioElement.canPlayType('audio/midi');
+
+        if (!canPlayMidi || canPlayMidi === '') {
+            throw new Error('Votre navigateur ne supporte pas la lecture de fichiers MIDI. Essayez Chrome, Firefox ou Edge.');
+        }
+
         this.audioElement.src = this.currentBlobURL;
         this.audioElement.style.display = 'block';
 
         this.audioElement.play().catch(error => {
             console.error('Erreur lecture audio:', error);
-            throw new Error('Impossible de lire le fichier MIDI. Votre navigateur supporte-t-il le format MIDI ?');
+            throw new Error('Impossible de lire le fichier MIDI : ' + error.message);
         });
     }
 
