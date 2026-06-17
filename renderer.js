@@ -385,7 +385,9 @@ class Renderer {
 
             // Tête de note
             this.drawNoteHead(ctx, x, y, chord.duration);
-			this.drawNoteStem(ctx, x, y, 1);
+			if (chord.duration <= 3 ) {
+				this.drawNoteStem(ctx, x, y, 1);
+			}
 
 
             // Altération
@@ -395,7 +397,7 @@ class Renderer {
         }
 
         // Dessine UNE queue pour tout l'accord
-        if (chord.duration === 1 || chord.duration === 1.5 || chord.duration === 2 || chord.duration === 3 || chord.duration <= 0.5) {
+        if (chord.duration <= 3 ) {
             const basePosition = this.notePositions[firstNote.note][clef];
             const position = basePosition + (firstNote.octave * 7);
             const y = this.getYPosition(position, staffY);
