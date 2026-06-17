@@ -57,9 +57,57 @@ class MidiPlayer {
     }
 
     async play(scoreData) {
+        if (this.isPlaying) {
+            return;
+        }
+
+        if (!this.audioContext) {
+            throw new Error('AudioContext not initialized. Call initAudioContext() first.');
+        }
+
+        const events = this.generateMidiEvents(scoreData);
+
+        if (events.length === 0) {
+            return;
+        }
+
+        this.isPlaying = true;
+        this.scheduledNotes = [];
+
+        const startTime = this.audioContext.currentTime;
+
+        for (const event of events) {
+            const eventTime = startTime + event.time;
+            for (const noteData of event.notes) {
+                this.playNote(noteData.frequency, eventTime, event.duration);
+                this.scheduledNotes.push({
+                    frequency: noteData.frequency,
+                    endTime: eventTime + event.duration
+                });
+            }
+        }
+
+        const lastEvent = events[events.length - 1];
+        const totalDuration = lastEvent.time + lastEvent.duration;
+
+        this._stopTimeout = setTimeout(() => {
+            this.isPlaying = false;
+            this.scheduledNotes = [];
+        }, totalDuration * 1000);
     }
 
     stop() {
+        if (!this.isPlaying) {
+            return;
+        }
+
+        this.isPlaying = false;
+        this.scheduledNotes = [];
+
+        if (this._stopTimeout) {
+            clearTimeout(this._stopTimeout);
+            this._stopTimeout = null;
+        }
     }
 
     noteToFrequency(note, alteration, octave) {

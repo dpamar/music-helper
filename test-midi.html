@@ -10,6 +10,12 @@
 <button id="test-sound" style="font-size:20px; padding:10px">
     Test sound (Do medium)
 </button>
+<button id="test-play" style="font-size:20px; padding:10px; margin:10px">
+    Play test score
+</button>
+<button id="test-stop" style="font-size:20px; padding:10px">
+    Stop
+</button>
 
 <script src="midi.js"></script>
 <script>
@@ -96,12 +102,43 @@ if (typeof MidiPlayer !== 'undefined') {
 
 // Audio test button
 document.getElementById('test-sound').addEventListener('click', () => {
-    const player = new MidiPlayer();
-    player.initAudioContext();
-    const freq = player.noteToFrequency('C', '', 0);
-    const startTime = player.audioContext.currentTime;
-    player.playNote(freq, startTime, 1.0);
+    const p = new MidiPlayer();
+    p.initAudioContext();
+    const freq = p.noteToFrequency('C', '', 0);
+    const startTime = p.audioContext.currentTime;
+    p.playNote(freq, startTime, 1.0);
     console.log('Playing C4 (Do medium) for 1 second...');
+});
+
+// Play/stop test
+const playTestPlayer = new MidiPlayer();
+const playTestScore = {
+    title: 'Gamme',
+    tempo: 120,
+    timeSignature: {numerator: 4, denominator: 4},
+    clef: 'sol',
+    keySignature: [],
+    notes: [
+        {type: 'note', note: 'C', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'D', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'E', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'F', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'G', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'A', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'B', alteration: '', octave: 0, duration: 1},
+        {type: 'note', note: 'C', alteration: '', octave: 1, duration: 2}
+    ]
+};
+
+document.getElementById('test-play').addEventListener('click', () => {
+    playTestPlayer.initAudioContext();
+    playTestPlayer.play(playTestScore);
+    console.log('Playing test score... isPlaying:', playTestPlayer.isPlaying);
+});
+
+document.getElementById('test-stop').addEventListener('click', () => {
+    playTestPlayer.stop();
+    console.log('Stopped. isPlaying:', playTestPlayer.isPlaying);
 });
 </script>
 </body>
