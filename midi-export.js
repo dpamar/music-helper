@@ -100,6 +100,72 @@ class MidiExporter {
     }
 
     /**
+     * Encode un entier en Variable Length Quantity (format MIDI)
+     * @param {number} value - Entier à encoder
+     * @returns {Array<number>} Bytes encodés
+     */
+    writeVarLength(value) {
+        const bytes = [];
+        let buffer = value & 0x7F;
+
+        while (value >>= 7) {
+            buffer <<= 8;
+            buffer |= 0x80;
+            buffer += (value & 0x7F);
+        }
+
+        while (true) {
+            bytes.push(buffer & 0xFF);
+            if (buffer & 0x80) {
+                buffer >>= 8;
+            } else {
+                break;
+            }
+        }
+
+        return bytes;
+    }
+
+    /**
+     * Convertit une chaîne en bytes ASCII
+     * @param {string} str - Chaîne à convertir
+     * @returns {Array<number>} Bytes ASCII
+     */
+    writeString(str) {
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            bytes.push(str.charCodeAt(i));
+        }
+        return bytes;
+    }
+
+    /**
+     * Encode un entier 16-bit en big-endian
+     * @param {number} value - Entier 16-bit
+     * @returns {Array<number>} 2 bytes
+     */
+    writeUint16(value) {
+        return [
+            (value >> 8) & 0xFF,
+            value & 0xFF
+        ];
+    }
+
+    /**
+     * Encode un entier 32-bit en big-endian
+     * @param {number} value - Entier 32-bit
+     * @returns {Array<number>} 4 bytes
+     */
+    writeUint32(value) {
+        return [
+            (value >> 24) & 0xFF,
+            (value >> 16) & 0xFF,
+            (value >> 8) & 0xFF,
+            value & 0xFF
+        ];
+    }
+
+    /**
      * Exporte la partition en fichier MIDI et déclenche le téléchargement
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
