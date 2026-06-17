@@ -270,7 +270,25 @@ class MidiExporter {
      * @param {string} filename - Nom du fichier (sans extension)
      */
     export(scoreData, filename) {
-        // TODO: implémenter la génération du fichier MIDI
-        console.log('Export MIDI:', scoreData, filename);
+        const ppq = 480;
+
+        const events = this.generateMidiEvents(scoreData);
+
+        const headerBytes = this.buildHeaderChunk(ppq);
+        const trackBytes = this.buildTrackChunk(scoreData, events);
+
+        const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
+
+        const blob = new Blob([midiBytes], { type: 'audio/midi' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.mid`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
     }
 }
