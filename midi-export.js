@@ -192,6 +192,79 @@ class MidiExporter {
     }
 
     /**
+     * Construit le chunk track MIDI (MTrk)
+     * @param {Object} scoreData - Données de partition
+     * @param {Array} events - Événements MIDI générés
+     * @returns {Array<number>} Bytes du track chunk
+     */
+    buildTrackChunk(scoreData, events) {
+        const trackData = [];
+        let lastTick = 0;
+
+        // Événement meta : Track Name
+        if (scoreData.title) {
+            trackData.push(0); // Delta time 0
+            trackData.push(0xFF); // Meta event
+            trackData.push(0x03); // Track name
+            const titleBytes = this.writeString(scoreData.title);
+            trackData.push(...this.writeVarLength(titleBytes.length));
+            trackData.push(...titleBytes);
+        }
+
+        // Événement meta : Set Tempo (microsecondes par quarter note)
+        const microsecondsPerQuarter = Math.round(60000000 / scoreData.tempo);
+        trackData.push(0); // Delta time 0
+        trackData.push(0xFF); // Meta event
+        trackData.push(0x51); // Set tempo
+        trackData.push(0x03); // Taille (toujours 3 bytes)
+        trackData.push((microsecondsPerQuarter >> 16) & 0xFF);
+        trackData.push((microsecondsPerQuarter >> 8) & 0xFF);
+        trackData.push(microsecondsPerQuarter & 0xFF);
+
+        // Événement meta : Time Signature
+        trackData.push(0); // Delta time 0
+        trackData.push(0xFF); // Meta event
+        trackData.push(0x58); // Time signature
+        trackData.push(0x04); // Taille (toujours 4 bytes)
+        trackData.push(scoreData.timeSignature.numerator);
+        trackData.push(Math.log2(scoreData.timeSignature.denominator));
+        trackData.push(24); // MIDI clocks per metronome click
+        trackData.push(8); // 32nds per quarter note
+
+        // Événements MIDI (note on/off)
+        for (const event of events) {
+            const deltaTime = event.tick - lastTick;
+            trackData.push(...this.writeVarLength(deltaTime));
+
+            if (event.type === 'note_on') {
+                trackData.push(0x90 | event.channel);
+                trackData.push(event.note);
+                trackData.push(event.velocity);
+            } else if (event.type === 'note_off') {
+                trackData.push(0x80 | event.channel);
+                trackData.push(event.note);
+                trackData.push(event.velocity);
+            }
+
+            lastTick = event.tick;
+        }
+
+        // Événement meta : End of Track
+        trackData.push(0); // Delta time 0
+        trackData.push(0xFF); // Meta event
+        trackData.push(0x2F); // End of track
+        trackData.push(0x00); // Taille 0
+
+        // Construire le chunk complet
+        const bytes = [];
+        bytes.push(...this.writeString('MTrk'));
+        bytes.push(...this.writeUint32(trackData.length));
+        bytes.push(...trackData);
+
+        return bytes;
+    }
+
+    /**
      * Exporte la partition en fichier MIDI et déclenche le téléchargement
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
