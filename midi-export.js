@@ -37,6 +37,69 @@ class MidiExporter {
     }
 
     /**
+     * Génère les événements MIDI à partir des données de partition
+     * @param {Object} scoreData - Données parsées (tempo, notes, etc.)
+     * @returns {Array} Liste d'événements MIDI triés par temps
+     */
+    generateMidiEvents(scoreData) {
+        const events = [];
+        const ppq = 480;
+        let currentTick = 0;
+
+        for (const item of scoreData.notes) {
+            const durationTicks = Math.round(item.duration * ppq);
+
+            if (item.type === 'rest') {
+                currentTick += durationTicks;
+            } else if (item.type === 'note') {
+                const midiNumber = this.noteToMidiNumber(item.note, item.alteration, item.octave);
+                events.push({
+                    tick: currentTick,
+                    type: 'note_on',
+                    channel: 0,
+                    note: midiNumber,
+                    velocity: 80
+                });
+                events.push({
+                    tick: currentTick + durationTicks,
+                    type: 'note_off',
+                    channel: 0,
+                    note: midiNumber,
+                    velocity: 0
+                });
+                currentTick += durationTicks;
+            } else if (item.type === 'chord') {
+                for (const noteData of item.notes) {
+                    const midiNumber = this.noteToMidiNumber(
+                        noteData.note,
+                        noteData.alteration,
+                        noteData.octave
+                    );
+                    events.push({
+                        tick: currentTick,
+                        type: 'note_on',
+                        channel: 0,
+                        note: midiNumber,
+                        velocity: 80
+                    });
+                    events.push({
+                        tick: currentTick + durationTicks,
+                        type: 'note_off',
+                        channel: 0,
+                        note: midiNumber,
+                        velocity: 0
+                    });
+                }
+                currentTick += durationTicks;
+            }
+        }
+
+        events.sort((a, b) => a.tick - b.tick);
+
+        return events;
+    }
+
+    /**
      * Exporte la partition en fichier MIDI et déclenche le téléchargement
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)

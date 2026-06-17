@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - MIDI Export Events</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : MIDI Export - generateMidiEvents</h1>
+    <div id="results"></div>
+
+    <script src="../midi-export.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const exporter = new MidiExporter();
+
+        // Test: generateMidiEvents method exists
+        assert(typeof exporter.generateMidiEvents === 'function', 'generateMidiEvents method exists');
+
+        // Test: single note generates 2 events (note_on + note_off)
+        const singleNote = {
+            tempo: 120,
+            notes: [{ type: 'note', note: 'C', alteration: '', octave: 0, duration: 1 }]
+        };
+        const singleEvents = exporter.generateMidiEvents(singleNote);
+        assert(singleEvents.length === 2, 'Single note generates 2 events');
+        assert(singleEvents[0].type === 'note_on', 'First event is note_on');
+        assert(singleEvents[1].type === 'note_off', 'Second event is note_off');
+        assert(singleEvents[0].tick === 0, 'First event at tick 0');
+        assert(singleEvents[1].tick === 480, 'Note_off at tick 480 (1 quarter = 480 PPQ)');
+        assert(singleEvents[0].note === 60, 'Note_on has MIDI number 60');
+        assert(singleEvents[1].note === 60, 'Note_off has MIDI number 60');
+        assert(singleEvents[0].velocity === 80, 'Note_on velocity is 80');
+        assert(singleEvents[0].channel === 0, 'Channel is 0');
+
+        // Test: rest generates no events but advances time
+        const restData = {
+            tempo: 120,
+            notes: [
+                { type: 'rest', duration: 1 },
+                { type: 'note', note: 'D', alteration: '', octave: 0, duration: 1 }
+            ]
+        };
+        const restEvents = exporter.generateMidiEvents(restData);
+        assert(restEvents.length === 2, 'Rest + note = 2 events');
+        assert(restEvents[0].tick === 480, 'Note after rest starts at tick 480');
+        assert(restEvents[1].tick === 960, 'Note_off after rest at tick 960');
+
+        // Test: chord generates multiple note_on/note_off
+        const chordData = {
+            tempo: 120,
+            notes: [{
+                type: 'chord',
+                notes: [
+                    { note: 'C', alteration: '', octave: 0 },
+                    { note: 'E', alteration: '', octave: 0 },
+                    { note: 'G', alteration: '', octave: 0 }
+                ],
+                duration: 2
+            }]
+        };
+        const chordEvents = exporter.generateMidiEvents(chordData);
+        assert(chordEvents.length === 6, 'Chord with 3 notes = 6 events');
+
+        // All note_ons at tick 0
+        const noteOns = chordEvents.filter(e => e.type === 'note_on');
+        assert(noteOns.length === 3, '3 note_on events for chord');
+        assert(noteOns.every(e => e.tick === 0), 'All chord note_ons at tick 0');
+
+        // All note_offs at tick 960 (duration 2 = 2*480)
+        const noteOffs = chordEvents.filter(e => e.type === 'note_off');
+        assert(noteOffs.length === 3, '3 note_off events for chord');
+        assert(noteOffs.every(e => e.tick === 960), 'All chord note_offs at tick 960');
+
+        // Test: different durations
+        const halfNote = {
+            tempo: 120,
+            notes: [{ type: 'note', note: 'C', alteration: '', octave: 0, duration: 2 }]
+        };
+        const halfEvents = exporter.generateMidiEvents(halfNote);
+        assert(halfEvents[1].tick === 960, 'Half note (dur=2) off at tick 960');
+
+        const eighthNote = {
+            tempo: 120,
+            notes: [{ type: 'note', note: 'C', alteration: '', octave: 0, duration: 0.5 }]
+        };
+        const eighthEvents = exporter.generateMidiEvents(eighthNote);
+        assert(eighthEvents[1].tick === 240, 'Eighth note (dur=0.5) off at tick 240');
+
+        // Test: events are sorted by tick
+        const multiNote = {
+            tempo: 120,
+            notes: [
+                { type: 'note', note: 'C', alteration: '', octave: 0, duration: 1 },
+                { type: 'note', note: 'D', alteration: '', octave: 0, duration: 1 }
+            ]
+        };
+        const multiEvents = exporter.generateMidiEvents(multiNote);
+        let sorted = true;
+        for (let i = 1; i < multiEvents.length; i++) {
+            if (multiEvents[i].tick < multiEvents[i-1].tick) { sorted = false; break; }
+        }
+        assert(sorted, 'Events are sorted by tick');
+
+        displayResults();
+    </script>
+</body>
+</html>
