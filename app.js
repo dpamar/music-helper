@@ -8,7 +8,7 @@
 // Instances globales
 let parser;
 let renderer;
-let midiPlayer;
+let midiAudioPlayer;
 let midiExporter;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
@@ -20,8 +20,8 @@ function init() {
     // Crée les instances
     parser = new Parser();
     renderer = new Renderer();
-    midiPlayer = new MidiPlayer();
     midiExporter = new MidiExporter();
+    midiAudioPlayer = new MidiAudioPlayer();
 
     // Récupère les éléments DOM
     const btnRender = document.getElementById('btn-render');
@@ -31,8 +31,11 @@ function init() {
     const btnExportMIDI = document.getElementById('btn-export-midi');
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
-
     const btnPlay = document.getElementById('btn-play');
+    const audioElement = document.getElementById('midi-player');
+
+    // Initialise le lecteur audio
+    midiAudioPlayer.init(audioElement, midiExporter);
 
     // Attache les événements
     btnRender.addEventListener('click', handleRender);
@@ -262,25 +265,12 @@ function handlePlay() {
             throw new Error('Veuillez d\'abord générer une partition');
         }
 
-        if (midiPlayer.isPlaying) {
-            midiPlayer.stop();
+        if (midiAudioPlayer.isPlaying) {
+            midiAudioPlayer.stop();
             btnPlay.textContent = '🎵 Lire la partition';
         } else {
-            midiPlayer.initAudioContext();
-            midiPlayer.play(currentScoreData);
+            midiAudioPlayer.play(currentScoreData);
             btnPlay.textContent = '⏹️ Arrêter';
-
-            const quarterDuration = 60 / currentScoreData.tempo;
-            let totalDuration = 0;
-            for (const note of currentScoreData.notes) {
-                totalDuration += note.duration * quarterDuration;
-            }
-
-            setTimeout(() => {
-                if (!midiPlayer.isPlaying) {
-                    btnPlay.textContent = '🎵 Lire la partition';
-                }
-            }, totalDuration * 1000 + 500);
         }
 
     } catch (error) {
