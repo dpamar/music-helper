@@ -329,23 +329,10 @@ class Renderer {
             this.drawAccidental(ctx, note.alteration, x - 15, y);
         }
 
-        // Dessine la queue (si croche ou double-croche)
-        if (note.duration <= 0.5) {
-            this.drawNoteStem(ctx, x, y, note.duration);
-        } else if (note.duration < 1) {
-            this.drawNoteStem(ctx, x, y, note.duration);
-        } else if (note.duration === 1) {
-			 this.drawNoteStem(ctx, x, y, note.duration);
-		} else if (note.duration === 1.5) {
-
-            // Noire : tête pleine + queue
+        // Dessine la queue (si pas ronde)
+        if (note.duration < 4) {
             this.drawNoteStem(ctx, x, y, note.duration);
         }
-        // Blanche et ronde : pas de queue supplémentaire    je le corrige pour la blanche
-				if (note.duration === 2 || note.duration === 3 ) {
-			  this.drawNoteStem(ctx, x, y, note.duration);
-		}
-
 
         // Dessine le point (pour les notes pointées)
         if (this.isDotted(note)) {
@@ -394,19 +381,17 @@ class Renderer {
             }
         }
 
-        // Dessine UNE queue pour tout l'accord
-        if (chord.duration === 1 || chord.duration === 1.5 || chord.duration === 2 || chord.duration === 3 || chord.duration <= 0.5) {
-            const basePosition = this.notePositions[firstNote.note][clef];
-            const position = basePosition + (firstNote.octave * 7);
-            const y = this.getYPosition(position, staffY);
+        const basePosition = this.notePositions[firstNote.note][clef];
+        const position = basePosition + (firstNote.octave * 7);
+        const y = this.getYPosition(position, staffY);
+
+        // Dessine UNE queue pour tout l'accord si pas ronde
+        if (chord.duration < 4) {
             this.drawNoteStem(ctx, x, y, chord.duration);
         }
 
         // Dessine le point (pour les accords pointés, un pour tout l'accord)
         if (this.isDotted(chord)) {
-            const basePosition = this.notePositions[firstNote.note][clef];
-            const position = basePosition + (firstNote.octave * 7);
-            const y = this.getYPosition(position, staffY);
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
@@ -489,22 +474,18 @@ class Renderer {
         ctx.stroke();
 
         // Crochets pour croche et double-croche
-        if (duration <= 0.25) {
-            // Double-croche : 2 crochets
+        if (duration <= 0.5) {
+            // Premier crochet
             ctx.beginPath();
             ctx.moveTo(x + 11, y - 40);
             ctx.quadraticCurveTo(x + 20, y - 35, x + 18, y - 30);
             ctx.stroke();
-
+        }
+        if (duration < 0.5) {
+            // Deuxième crochet si besoin
             ctx.beginPath();
             ctx.moveTo(x + 11, y - 33);
             ctx.quadraticCurveTo(x + 20, y - 28, x + 18, y - 23);
-            ctx.stroke();
-        } else if (duration <= 0.5) {
-            // Croche : 1 crochet
-            ctx.beginPath();
-            ctx.moveTo(x + 11, y - 40);
-            ctx.quadraticCurveTo(x + 20, y - 35, x + 18, y - 30);
             ctx.stroke();
         }
     }
