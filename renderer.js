@@ -291,6 +291,7 @@ class Renderer {
                 x = this.drawRest(ctx, item, x, currentStaffY);
             } else {
                 let firstNoteX = null, lastNoteX = null;
+                let noteY = null;
 
                 // Dessine une note simple ou un accord
                 let drawer = item.type === 'note' ? "drawNote" : "drawChord";
@@ -299,7 +300,9 @@ class Renderer {
                 while (remainingItemDuration >= remainingUntilMeasureBar) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
-                    x = this[drawer](ctx, item, x, clef, currentStaffY, remainingUntilMeasureBar);
+                    let notePosition = this[drawer](ctx, item, x, clef, currentStaffY, remainingUntilMeasureBar);
+                    x = notePosition.x;
+                    noteY = notePosition.y;
                     remainingItemDuration -= remainingUntilMeasureBar;
                     remainingUntilMeasureBar = beatsPerMesure;
 
@@ -310,13 +313,15 @@ class Renderer {
                 if (remainingItemDuration > 0) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
-                    x = this[drawer](ctx, item, x, clef, currentStaffY, remainingItemDuration);
+                    let notePosition = this[drawer](ctx, item, x, clef, currentStaffY, remainingItemDuration);
+                    x = notePosition.x;
+                    noteY = notePosition.y;
                     x += this.config.noteWidth; // Espace entre les notes
                     remainingUntilMeasureBar -= remainingItemDuration;
                 }
                 // Arc de liaison
                 if (firstNoteX != lastNoteX) {
-                    this.drawLink(ctx, firstNoteX, lastNoteX, currentStaffY);
+                    this.drawLink(ctx, firstNoteX + this.config.noteWidth / 2, lastNoteX, noteY - 40);
                 }
             }
         }
@@ -333,7 +338,17 @@ class Renderer {
      * @param {noteY} number - coordonnée Y des deux notes
      */
     drawLink(ctx, firstNoteX, lastNoteX, noteY) {
-        console.log(" Il faut un arc... ");
+        let centerX = (firstNoteX + lastNoteX) / 2;
+        let offsetY = this.config.staffLineSpacing * 10;
+        let centerY = noteY + offsetY;
+        let radiusX = (lastNoteX - firstNoteX) / 2;
+        let radius = (radiusX**2 + offsetY**2)**.5;
+        let angleStart = Math.asin(offsetY / radius) - Math.PI;
+        let angleEnd = -Math.asin(offsetY / radius);
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, angleEnd, angleStart, true);
+        ctx.stroke();
     }
 
     /**
@@ -377,7 +392,7 @@ class Renderer {
             ctx.fill();
         }
 
-        return x;
+        return {'x': x, 'y': y};
     }
 
     /**
@@ -399,10 +414,10 @@ class Renderer {
         for (const note of chord.notes) {
             const basePosition = this.notePositions[note.note][clef];
             const position = basePosition + (note.octave * 7);
-			if (firstNote == null || firstNotePosition < position) {
-				firstNote = note;
-				firstNotePosition = position;
-			}
+            if (firstNote == null || firstNotePosition < position) {
+                firstNote = note;
+                firstNotePosition = position;
+            }
             const y = this.getYPosition(position, staffY);
 
             // Lignes supplémentaires
@@ -410,9 +425,9 @@ class Renderer {
 
             // Tête de note
             this.drawNoteHead(ctx, x, y, duration);
-			if (duration < 4 ) {
-				this.drawNoteStem(ctx, x, y, 1);
-			}
+            if (duration < 4 ) {
+                this.drawNoteStem(ctx, x, y, 1);
+            }
 
 
             // Altération
@@ -438,7 +453,7 @@ class Renderer {
             ctx.fill();
         }
 
-        return x;
+        return {'x': x, 'y': y};
     }
 
     /**
