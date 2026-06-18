@@ -267,10 +267,12 @@ class Renderer {
      */
     drawNotes(ctx, notes, timeSignature, startX, clef) {
         let x = startX;
-        let beatCount = 0; // Pour compter les temps et dessiner les barres de mesure
         let currentStaffY = this.config.marginTop; // Position Y de la portée actuelle
         let staffCount = 0; // Nombre de portées dessinées
         let beatsPerMesure = this.beatsPerMesure(timeSignature);
+
+        // Il reste "tant" de place avant la barre
+        let remainingUntilMeasureBar = beatsPerMesure;
 		
         for (const item of notes) {
             // Si on dépasse 850px, on passe à la ligne (nouvelle portée)
@@ -281,37 +283,57 @@ class Renderer {
 
                 // Dessine la nouvelle portée
                 this.drawStaff(ctx, clef, currentStaffY);
-                beatCount = 0; // Reset du compteur de mesures
+                remainingUntilMeasureBar = beatsPerMesure; // Reset du compteur de mesures
             }
 
             if (item.type === 'rest') {
                 // Dessine un silence
                 x = this.drawRest(ctx, item, x, currentStaffY);
-                beatCount += item.duration;
-            } else if (item.type === 'note') {
-                // Dessine une note simple
-                x = this.drawNote(ctx, item, x, clef, currentStaffY);
-                beatCount += item.duration;
-            } else if (item.type === 'chord') {
-                // Dessine un accord
-                x = this.drawChord(ctx, item, x, clef, currentStaffY);
-                beatCount += item.duration;
-            }
+            } else {
+                let firstNoteX = null, lastNoteX = null;
 
-            if (beatCount >= beatsPerMesure) {
-                this.drawBarline(ctx, x + this.config.noteWidth - 10, currentStaffY, false);
-                beatCount = 0;
-                x += 10; // Espace supplémentaire après la barre
-            }
-			if (beatCount > beatsPerMesure) {
-				
-			}
+                // Dessine une note simple ou un accord
+                let drawer = item.type === 'note' ? "drawNote" : "drawChord";
 
-            x += this.config.noteWidth; // Espace entre les notes
+                let remainingItemDuration = item.duration;
+                while (remainingItemDuration >= remainingUntilMeasureBar) {
+                    firstNoteX = firstNoteX || x;
+                    lastNoteX = x;
+                    x = this[drawer](ctx, item, x, clef, currentStaffY, remainingUntilMeasureBar);
+                    remainingItemDuration -= remainingUntilMeasureBar;
+                    remainingUntilMeasureBar = beatsPerMesure;
+
+                    this.drawBarline(ctx, x + this.config.noteWidth - 10, currentStaffY, false);
+                    x += 10; // Espace supplémentaire après la barre
+                    x += this.config.noteWidth; // Espace entre les notes
+                }
+                if (remainingItemDuration > 0) {
+                    firstNoteX = firstNoteX || x;
+                    lastNoteX = x;
+                    x = this[drawer](ctx, item, x, clef, currentStaffY, remainingItemDuration);
+                    x += this.config.noteWidth; // Espace entre les notes
+                    remainingUntilMeasureBar -= remainingItemDuration;
+                }
+                // Arc de liaison
+                if (firstNoteX != lastNoteX) {
+                    this.drawLink(ctx, firstNoteX, lastNoteX, currentStaffY);
+                }
+            }
         }
 
         // Barre finale
         this.drawBarline(ctx, x, currentStaffY, true);
+    }
+
+    /**
+     * Affiche une liaison entre deux notes
+     * @param {CanvasRenderingContext2D} ctx - Contexte
+     * @param {firstNoteX} number - coordonnée X de la note de départ
+     * @param {lastNoteX} number - coordonnée X de la node d'arrivée
+     * @param {noteY} number - coordonnée Y des deux notes
+     */
+    drawLink(ctx, firstNoteX, lastNoteX, noteY) {
+        console.log(" Il faut un arc... ");
     }
 
     /**
@@ -321,19 +343,21 @@ class Renderer {
      * @param {number} x - Position X
      * @param {string} clef - Clef
      * @param {number} staffY - Position Y de la portée
+     * @param {number} durationModification - Durée de la note (si différente de ce qui est dans l'objet note)
      * @returns {number} - Nouvelle position X
      */
-    drawNote(ctx, note, x, clef, staffY = null) {
+    drawNote(ctx, note, x, clef, staffY = null, durationModification = null) {
         // Calcule la position Y de la note sur la portée
         const basePosition = this.notePositions[note.note][clef];
         const position = basePosition + (note.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
+        const duration = durationModification || node.duration;
 
         // Dessine les lignes supplémentaires si la note est hors portée 
         this.drawLedgerLines(ctx, x, position, staffY);
 
         // Dessine la tête de note
-        this.drawNoteHead(ctx, x, y, note.duration);
+        this.drawNoteHead(ctx, x, y, duration);
 
         // Dessine l'altération (si présente)
         if (note.alteration) {
@@ -341,12 +365,12 @@ class Renderer {
         }
 
         // Dessine la queue (si pas ronde)
-        if (note.duration < 4) {
-            this.drawNoteStem(ctx, x, y, note.duration);
+        if (duration < 4) {
+            this.drawNoteStem(ctx, x, y, duration);
         }
 
         // Dessine le point (pour les notes pointées)
-        if (this.isDotted(note)) {
+        if (this.isDotted(duration)) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
@@ -363,12 +387,15 @@ class Renderer {
      * @param {number} x - Position X
      * @param {string} clef - Clef
      * @param {number} staffY - Position Y de la portée
+     * @param {number} durationModification - Durée de la note (si différente de ce qui est dans l'objet note)
      * @returns {number} - Nouvelle position X
      */
-    drawChord(ctx, chord, x, clef, staffY = null) {
+    drawChord(ctx, chord, x, clef, staffY = null, durationModification = null) {
+        const duration = durationModification || chord.duration;
+
         // Dessine chaque note de l'accord à la même position X
-		var firstNote = null;
-		var firstNotePosition = 0;
+	var firstNote = null;
+	var firstNotePosition = 0;
         for (const note of chord.notes) {
             const basePosition = this.notePositions[note.note][clef];
             const position = basePosition + (note.octave * 7);
@@ -382,8 +409,8 @@ class Renderer {
             this.drawLedgerLines(ctx, x, position, staffY);
 
             // Tête de note
-            this.drawNoteHead(ctx, x, y, chord.duration);
-			if (chord.duration < 4 ) {
+            this.drawNoteHead(ctx, x, y, duration);
+			if (duration < 4 ) {
 				this.drawNoteStem(ctx, x, y, 1);
 			}
 
@@ -399,12 +426,12 @@ class Renderer {
         const y = this.getYPosition(position, staffY);
 
         // Dessine UNE queue pour tout l'accord si pas ronde
-        if (chord.duration < 4) {
-            this.drawNoteStem(ctx, x, y, chord.duration);
+        if (duration < 4) {
+            this.drawNoteStem(ctx, x, y, duration);
         }
 
         // Dessine le point (pour les accords pointés, un pour tout l'accord)
-        if (this.isDotted(chord)) {
+        if (this.isDotted(duration)) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
@@ -607,10 +634,10 @@ class Renderer {
 
     /**
      * Indique si une note ou un accord est pointé
-     * @param {Object} noteOrChord - note, ou accord
+     * @param {number} duration - Durée de la note, ou accord
      * @returns {boolean} - true si la note ou l'accord est pointé
      */
-    isDotted(noteOrChord) {
-        return [0.375, 0.75, 1.5, 3, 6].indexOf(noteOrChord.duration) >= 0;
+    isDotted(duration) {
+        return [0.375, 0.75, 1.5, 3, 6].indexOf(duration) >= 0;
     }
 }
