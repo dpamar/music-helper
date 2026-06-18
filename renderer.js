@@ -253,19 +253,8 @@ class Renderer {
 	 * Les if sont là pour transformer le dénominateur en sa valeur en temps
 	 */
     beatsPerMesure(timeSignature) {
-		if (timeSignature.denominator==1) {
-			timeSignature.denominator = timeSignature.denominator + 3
-		}
-		if (timeSignature.denominator==4) {
-			timeSignature.denominator = timeSignature.denominator - 3
-		}
-		if (timeSignature.denominator==8) {
-			timeSignature.denominator = timeSignature.denominator - 7.5
-		}
-		if (timeSignature.denominator==16) {
-			timeSignature.denominator = timeSignature.denominator - 15.75
-		}
-		var result = timeSignature.numerator*timeSignature.denominator;
+		const unit = {1:4,2:2,4:1,8:0.5,16:0.25}
+		var result = timeSignature.numerator*unit[timeSignature.denominator];
 		return result;
 	}
 	
@@ -309,13 +298,14 @@ class Renderer {
                 beatCount += item.duration;
             }
 
-            // Dessine une barre de mesure tous les 4 temps (pour 4/4)
-            // TODO: adapter selon le chiffrage réel
             if (beatCount >= beatsPerMesure) {
                 this.drawBarline(ctx, x + this.config.noteWidth - 10, currentStaffY, false);
                 beatCount = 0;
                 x += 10; // Espace supplémentaire après la barre
             }
+			if (beatCount > beatsPerMesure) {
+				
+			}
 
             x += this.config.noteWidth; // Espace entre les notes
         }
