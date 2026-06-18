@@ -288,13 +288,11 @@ class Renderer {
                 // Dessine un silence
                 x = this.drawRest(ctx, item, x, currentStaffY);
                 beatCount += item.duration;
-            } else if (item.type === 'note') {
-                // Dessine une note simple
-                x = this.drawNote(ctx, item, x, clef, currentStaffY);
-                beatCount += item.duration;
-            } else if (item.type === 'chord') {
-                // Dessine un accord
-                x = this.drawChord(ctx, item, x, clef, currentStaffY);
+            } else {
+                // Dessine une note simple ou un accord
+                let drawer = item.type === 'note' ? "drawNote" : "drawChord";
+
+                x = this[drawer](ctx, item, x, clef, currentStaffY);
                 beatCount += item.duration;
             }
 
@@ -303,9 +301,6 @@ class Renderer {
                 beatCount = 0;
                 x += 10; // Espace supplémentaire après la barre
             }
-			if (beatCount > beatsPerMesure) {
-				
-			}
 
             x += this.config.noteWidth; // Espace entre les notes
         }
