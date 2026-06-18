@@ -101,7 +101,7 @@ class Renderer {
 
         // Dessine les notes
         currentX += 20; // Petit espace après le chiffrage
-        this.drawNotes(ctx, scoreData.notes, currentX, scoreData.clef);
+        this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef);
     }
 
     /**
@@ -250,18 +250,27 @@ class Renderer {
     }
 
     /**
+	 *
+	 */
+    beatsPerMesure(timeSignature) {
+		var result = 4;
+		return result;
+	}
+	
+    /**
      * Dessine toutes les notes
      * @param {CanvasRenderingContext2D} ctx - Contexte
      * @param {array} notes - Tableau des notes
      * @param {number} startX - Position X de départ
      * @param {string} clef - Clef
      */
-    drawNotes(ctx, notes, startX, clef) {
+    drawNotes(ctx, notes, timeSignature, startX, clef) {
         let x = startX;
         let beatCount = 0; // Pour compter les temps et dessiner les barres de mesure
         let currentStaffY = this.config.marginTop; // Position Y de la portée actuelle
         let staffCount = 0; // Nombre de portées dessinées
-
+        let beatsPerMesure = this.beatsPerMesure(timeSignature);
+		
         for (const item of notes) {
             // Si on dépasse 850px, on passe à la ligne (nouvelle portée)
             if (x > 850) {
@@ -290,7 +299,7 @@ class Renderer {
 
             // Dessine une barre de mesure tous les 4 temps (pour 4/4)
             // TODO: adapter selon le chiffrage réel
-            if (beatCount >= 4) {
+            if (beatCount >= beatsPerMesure) {
                 this.drawBarline(ctx, x + this.config.noteWidth - 10, currentStaffY, false);
                 beatCount = 0;
                 x += 10; // Espace supplémentaire après la barre
