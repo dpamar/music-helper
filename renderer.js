@@ -249,11 +249,23 @@ class Renderer {
         return startX + 40;
     }
 
-    /**
-	 *
+    /**calcul automatique du placement des mesures en fonction du chiffrage
+	 * Les if sont là pour transformer le dénominateur en sa valeur en temps
 	 */
     beatsPerMesure(timeSignature) {
-		var result = 4;
+		if (timeSignature.denominator==1) {
+			timeSignature.denominator = timeSignature.denominator + 3
+		}
+		if (timeSignature.denominator==4) {
+			timeSignature.denominator = timeSignature.denominator - 3
+		}
+		if (timeSignature.denominator==8) {
+			timeSignature.denominator = timeSignature.denominator - 7.5
+		}
+		if (timeSignature.denominator==16) {
+			timeSignature.denominator = timeSignature.denominator - 15.75
+		}
+		var result = timeSignature.numerator*timeSignature.denominator;
 		return result;
 	}
 	
