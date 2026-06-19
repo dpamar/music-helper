@@ -571,6 +571,115 @@ function updateMultiExportButtons() {
     }
 }
 
+/**
+ * Gère l'export MIDI d'une seule partition de la collection
+ */
+function handleExportSingleScore(id) {
+    const errorDiv = document.getElementById('error-message');
+
+    const score = multiScoreManager.getScore(id);
+    if (!score) {
+        errorDiv.textContent = '❌ Partition non trouvée';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        let filename = 'partition';
+        if (score.scoreData.title && score.scoreData.title.trim()) {
+            filename = score.scoreData.title.trim()
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+        }
+
+        const program = INSTRUMENTS[score.instrument]?.program || 0;
+        midiExporter.export(score.scoreData, filename, program);
+    } catch (error) {
+        errorDiv.textContent = '❌ ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Gère l'export MIDI individuel de toutes les partitions
+ */
+function handleExportIndividual() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (multiScoreManager.isEmpty()) {
+        errorDiv.textContent = '❌ Aucune partition à exporter';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        const scores = multiScoreManager.getAllScores();
+        for (const score of scores) {
+            let filename = 'partition';
+            if (score.scoreData.title && score.scoreData.title.trim()) {
+                filename = score.scoreData.title.trim()
+                    .toLowerCase()
+                    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-');
+            }
+            const program = INSTRUMENTS[score.instrument]?.program || 0;
+            midiExporter.export(score.scoreData, filename, program);
+        }
+    } catch (error) {
+        errorDiv.textContent = '❌ ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Gère l'export MIDI global (multi-pistes)
+ */
+function handleExportMulti() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (multiScoreManager.isEmpty()) {
+        errorDiv.textContent = '❌ Aucune partition à exporter';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        const multiScoreData = multiScoreManager.exportForMidi();
+
+        let filename = 'orchestre';
+        if (multiScoreData.globalTitle && multiScoreData.globalTitle.trim()) {
+            filename = multiScoreData.globalTitle.trim()
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+        }
+
+        multiMidiExporter.export(multiScoreData, filename);
+    } catch (error) {
+        errorDiv.textContent = '❌ ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
 // Lance l'initialisation au chargement de la page
 // DOMContentLoaded s'assure que le DOM est prêt avant d'exécuter le code
 document.addEventListener('DOMContentLoaded', init);
