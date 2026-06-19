@@ -436,6 +436,141 @@ function closeInstrumentModal() {
     modal.style.display = 'none';
 }
 
+/**
+ * Gère le clic sur "Ajouter la partition actuelle"
+ */
+function handleAddScore() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (!currentScoreData) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+        multiScoreManager.addScore(currentScoreData);
+        refreshScoresList();
+        updateMultiExportButtons();
+    } catch (error) {
+        errorDiv.textContent = '❌ ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Gère le clic sur "Effacer toutes les partitions"
+ */
+function handleClearAllScores() {
+    if (multiScoreManager.isEmpty()) {
+        return;
+    }
+
+    if (!confirm('Voulez-vous vraiment effacer toutes les partitions de l\'orchestre ?')) {
+        return;
+    }
+
+    multiScoreManager.clear();
+    refreshScoresList();
+    updateMultiExportButtons();
+}
+
+/**
+ * Gère la suppression d'une partition individuelle
+ */
+function handleRemoveScore(id) {
+    if (!confirm('Voulez-vous vraiment supprimer cette partition ?')) {
+        return;
+    }
+
+    multiScoreManager.removeScore(id);
+    refreshScoresList();
+    updateMultiExportButtons();
+}
+
+/**
+ * Rafraîchit l'affichage de la liste des partitions
+ */
+function refreshScoresList() {
+    const scoresList = document.getElementById('scores-list');
+    scoresList.textContent = '';
+
+    if (multiScoreManager.isEmpty()) {
+        const placeholder = document.createElement('p');
+        placeholder.className = 'placeholder';
+        placeholder.textContent = 'Aucune partition ajoutée pour l\'instant';
+        scoresList.appendChild(placeholder);
+        return;
+    }
+
+    const scores = multiScoreManager.getAllScores();
+
+    for (const score of scores) {
+        const item = document.createElement('div');
+        item.className = 'score-item';
+        item.dataset.id = score.id;
+
+        const info = document.createElement('div');
+        info.className = 'score-item-info';
+
+        const title = document.createElement('div');
+        title.className = 'score-item-title';
+        title.textContent = score.scoreData.title || 'Sans titre';
+
+        const instrumentName = INSTRUMENTS[score.instrument]?.name || score.instrument || 'Piano';
+        const instrumentEmoji = INSTRUMENTS[score.instrument]?.emoji || '🎹';
+        const instrumentDiv = document.createElement('div');
+        instrumentDiv.className = 'score-item-instrument';
+        instrumentDiv.textContent = `${instrumentEmoji} ${instrumentName}`;
+
+        info.appendChild(title);
+        info.appendChild(instrumentDiv);
+
+        const actions = document.createElement('div');
+        actions.className = 'score-item-actions';
+
+        const btnExport = document.createElement('button');
+        btnExport.className = 'btn-icon btn-export';
+        btnExport.textContent = '💾';
+        btnExport.title = 'Exporter cette partition en MIDI';
+        btnExport.addEventListener('click', () => handleExportSingleScore(score.id));
+
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn-icon btn-delete';
+        btnDelete.textContent = '🗑️';
+        btnDelete.title = 'Supprimer cette partition';
+        btnDelete.addEventListener('click', () => handleRemoveScore(score.id));
+
+        actions.appendChild(btnExport);
+        actions.appendChild(btnDelete);
+
+        item.appendChild(info);
+        item.appendChild(actions);
+
+        scoresList.appendChild(item);
+    }
+}
+
+/**
+ * Met à jour l'état des boutons d'export multi-partitions
+ */
+function updateMultiExportButtons() {
+    const btnExportIndividual = document.getElementById('btn-export-individual');
+    const btnExportMulti = document.getElementById('btn-export-multi');
+
+    const enabled = !multiScoreManager.isEmpty();
+
+    if (btnExportIndividual) {
+        btnExportIndividual.disabled = !enabled;
+    }
+    if (btnExportMulti) {
+        btnExportMulti.disabled = !enabled;
+    }
+}
+
 // Lance l'initialisation au chargement de la page
 // DOMContentLoaded s'assure que le DOM est prêt avant d'exécuter le code
 document.addEventListener('DOMContentLoaded', init);
