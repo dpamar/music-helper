@@ -342,3 +342,184 @@ button {
         grid-template-columns: 1fr;
     }
 }
+
+/* === Multi-Score Section === */
+.multi-score-section {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+}
+
+.multi-score-section .help-text {
+    background: #f0f4ff;
+    border-left: 4px solid #667eea;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.multi-score-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+#global-title-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+#global-title-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.scores-list {
+    min-height: 100px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #fafafa;
+}
+
+.scores-list .placeholder {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 2rem;
+}
+
+.score-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.score-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.score-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.score-item-title {
+    font-weight: bold;
+    color: #333;
+}
+
+.score-item-instrument {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.score-item-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    padding: 0.5rem;
+    background-color: transparent;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background-color: #f0f0f0;
+    border-color: #999;
+}
+
+.btn-icon:active {
+    transform: scale(0.95);
+}
+
+.btn-delete {
+    color: #e74c3c;
+}
+
+.btn-delete:hover {
+    background-color: #ffebee;
+    border-color: #e74c3c;
+}
+
+.btn-export {
+    color: #3498db;
+}
+
+.btn-export:hover {
+    background-color: #e3f2fd;
+    border-color: #3498db;
+}
+
+.multi-export-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.multi-export-actions button {
+    flex: 1;
+    min-width: 200px;
+}
+
+.multi-export-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .multi-score-controls {
+        flex-direction: column;
+    }
+
+    #global-title-input {
+        width: 100%;
+    }
+
+    .score-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .score-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .multi-export-actions {
+        flex-direction: column;
+    }
+
+    .multi-export-actions button {
+        width: 100%;
+    }
+}
