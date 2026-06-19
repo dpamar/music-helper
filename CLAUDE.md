@@ -490,6 +490,7 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - ✅ ~~Pas d'export MIDI~~ → Implémenté
 - ✅ ~~Lecture MIDI : problème de support navigateur (Chrome)~~ → Corrigé via Web Audio API
 - ⚠️ Lecture MIDI : son synthétique (oscillateurs simples), pas de son réaliste
+- ⚠️ Lecture MIDI : la sélection d'instrument n'affecte PAS le bouton "Lire la partition" (son synthétique uniforme), seulement l'export MIDI
 - ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
 
 ## 📚 Ressources

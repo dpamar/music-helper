@@ -12,6 +12,18 @@ let midiAudioPlayer;
 let midiExporter;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
+// Mapping des instruments disponibles
+const INSTRUMENTS = {
+    'piano': { name: 'Piano', program: 0, emoji: '🎹' },
+    'guitare': { name: 'Guitare', program: 24, emoji: '🎸' },
+    'violon': { name: 'Violon', program: 40, emoji: '🎻' },
+    'flute': { name: 'Flûte', program: 73, emoji: '🪈' },
+    'accordeon': { name: 'Accordéon', program: 21, emoji: '🪗' },
+    'contrebasse': { name: 'Contrebasse', program: 43, emoji: '🎼' },
+    'hautbois': { name: 'Hautbois', program: 68, emoji: '🎼' },
+    'trompette': { name: 'Trompette', program: 56, emoji: '🎺' }
+};
+
 /**
  * Initialisation de l'application
  * Appelée au chargement de la page
@@ -64,6 +76,24 @@ function init() {
     textarea.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             handleRender();
+        }
+    });
+
+    // Gestion de la modale d'instruments
+    const instrumentModal = document.getElementById('instrument-modal');
+    const btnCancelInstrument = document.getElementById('btn-cancel-instrument');
+
+    btnCancelInstrument.addEventListener('click', closeInstrumentModal);
+
+    instrumentModal.addEventListener('click', (e) => {
+        if (e.target === instrumentModal) {
+            closeInstrumentModal();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && instrumentModal.style.display === 'flex') {
+            closeInstrumentModal();
         }
     });
 
@@ -231,9 +261,34 @@ function handleExportPNG() {
 
 /**
  * Gère le clic sur "Exporter en MIDI"
- * Génère un fichier MIDI et déclenche le téléchargement
+ * Affiche la modale de sélection d'instrument
  */
 function handleExportMIDI() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (!currentScoreData) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    showInstrumentModal();
+}
+
+/**
+ * Gère la sélection d'un instrument pour l'export MIDI
+ * @param {string} instrumentKey - Clé de l'instrument dans INSTRUMENTS
+ */
+function handleInstrumentSelection(instrumentKey) {
+    const instrument = INSTRUMENTS[instrumentKey];
+    if (!instrument) {
+        console.error('Instrument inconnu:', instrumentKey);
+        return;
+    }
+
+    closeInstrumentModal();
+
     const errorDiv = document.getElementById('error-message');
 
     if (!currentScoreData) {
@@ -257,7 +312,7 @@ function handleExportMIDI() {
                 .replace(/-+/g, '-');
         }
 
-        midiExporter.export(currentScoreData, filename);
+        midiExporter.export(currentScoreData, filename, instrument.program);
 
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
@@ -318,6 +373,46 @@ function setPlayButtonState(enabled) {
     if (btnPlay) {
         btnPlay.disabled = !enabled;
     }
+}
+
+/**
+ * Affiche la modale de sélection d'instrument
+ */
+function showInstrumentModal() {
+    const modal = document.getElementById('instrument-modal');
+    const grid = document.getElementById('instrument-grid');
+
+    grid.textContent = '';
+
+    for (const [key, data] of Object.entries(INSTRUMENTS)) {
+        const button = document.createElement('button');
+        button.className = 'instrument-button';
+        button.dataset.instrument = key;
+        const emojiSpan = document.createElement('span');
+        emojiSpan.textContent = data.emoji;
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = data.name;
+        button.appendChild(emojiSpan);
+        button.appendChild(document.createElement('br'));
+        button.appendChild(nameSpan);
+        button.addEventListener('click', () => handleInstrumentSelection(key));
+        grid.appendChild(button);
+    }
+
+    modal.style.display = 'flex';
+
+    const firstButton = grid.querySelector('.instrument-button');
+    if (firstButton) {
+        firstButton.focus();
+    }
+}
+
+/**
+ * Ferme la modale de sélection d'instrument
+ */
+function closeInstrumentModal() {
+    const modal = document.getElementById('instrument-modal');
+    modal.style.display = 'none';
 }
 
 // Lance l'initialisation au chargement de la page

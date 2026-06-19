@@ -222,7 +222,7 @@ class MidiExporter {
      * @param {Array} events - Événements MIDI générés
      * @returns {Array<number>} Bytes du track chunk
      */
-    buildTrackChunk(scoreData, events) {
+    buildTrackChunk(scoreData, events, program = 0) {
         const trackData = [];
         let lastTick = 0;
 
@@ -262,6 +262,11 @@ class MidiExporter {
         trackData.push(24); // MIDI clocks per metronome click
         trackData.push(8); // 32nds per quarter note
 
+        // Événement MIDI : Program Change (0xC0)
+        trackData.push(0); // Delta time 0
+        trackData.push(0xC0 | 0); // Program Change sur canal 0
+        trackData.push(program); // Numéro de programme MIDI (0-127)
+
         // Événements MIDI (note on/off)
         for (const event of events) {
             const deltaTime = event.tick - lastTick;
@@ -300,13 +305,13 @@ class MidiExporter {
      * @param {Object} scoreData - Données de partition parsées
      * @returns {Blob} Blob MIDI de type 'audio/midi'
      */
-    generateMidiFile(scoreData) {
+    generateMidiFile(scoreData, program = 0) {
         const ppq = 480;
 
         const events = this.generateMidiEvents(scoreData);
 
         const headerBytes = this.buildHeaderChunk(ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
 
@@ -318,13 +323,13 @@ class MidiExporter {
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
      */
-    export(scoreData, filename) {
+    export(scoreData, filename, program = 0) {
         const ppq = 480;
 
         const events = this.generateMidiEvents(scoreData);
 
         const headerBytes = this.buildHeaderChunk(ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
 
