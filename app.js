@@ -10,6 +10,8 @@ let parser;
 let renderer;
 let midiAudioPlayer;
 let midiExporter;
+let multiScoreManager;
+let multiMidiExporter;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
 // Mapping des instruments disponibles
@@ -95,6 +97,25 @@ function init() {
         if (e.key === 'Escape' && instrumentModal.style.display === 'flex') {
             closeInstrumentModal();
         }
+    });
+
+    // Initialise le gestionnaire multi-partitions
+    multiScoreManager = new MultiScoreManager();
+    multiMidiExporter = new MultiMidiExporter(midiExporter);
+
+    const globalTitleInput = document.getElementById('global-title-input');
+    const btnAddScore = document.getElementById('btn-add-score');
+    const btnClearAllScores = document.getElementById('btn-clear-all-scores');
+    const btnExportIndividual = document.getElementById('btn-export-individual');
+    const btnExportMulti = document.getElementById('btn-export-multi');
+
+    btnAddScore.addEventListener('click', handleAddScore);
+    btnClearAllScores.addEventListener('click', handleClearAllScores);
+    btnExportIndividual.addEventListener('click', handleExportIndividual);
+    btnExportMulti.addEventListener('click', handleExportMulti);
+
+    globalTitleInput.addEventListener('input', (e) => {
+        multiScoreManager.setGlobalTitle(e.target.value);
     });
 
     console.log('✅ Application initialisée');
