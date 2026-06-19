@@ -15,18 +15,18 @@ let selectedInstruments = new Set(); // Stocke les clés des instruments sélect
 
 // Mapping des instruments disponibles
 const INSTRUMENTS = {
-    'piano': { name: 'Piano', program: 0, emoji: '🎹' },
-    'guitare': { name: 'Guitare', program: 24, emoji: '🎸' },
-    'violon': { name: 'Violon', program: 40, emoji: '🎻' },
-    'flute': { name: 'Flûte', program: 73, emoji: '🪈' },
-    'accordeon': { name: 'Accordéon', program: 21, emoji: '🪗' },
-    'contrebasse': { name: 'Contrebasse', program: 43, emoji: '🎼' },
-    'hautbois': { name: 'Hautbois', program: 68, emoji: '🎼' },
-    'trompette': { name: 'Trompette', program: 56, emoji: '🎺' },
-	'xylophone': { name: 'Xylophone', program: 13, emoji: '🎼' },
-	'guitare électrique': { name: 'Guitare électrique', program: 26, emoji: '🎸' },
-	'cornemuse': { name: 'Cornemuse', program: 109, emoji: '🎼' },
-	'orgue': { name: 'Orgue', program: 16, emoji: '🎼' }
+    'piano': { name: 'Piano', program: 0, emoji: '🎹', gmName: 'Acoustic Grand Piano' },
+    'guitare': { name: 'Guitare', program: 24, emoji: '🎸', gmName: 'Acoustic Guitar (nylon)' },
+    'violon': { name: 'Violon', program: 40, emoji: '🎻', gmName: 'Violin' },
+    'flute': { name: 'Flûte', program: 73, emoji: '🪈', gmName: 'Flute' },
+    'accordeon': { name: 'Accordéon', program: 21, emoji: '🪗', gmName: 'Accordion' },
+    'contrebasse': { name: 'Contrebasse', program: 43, emoji: '🎼', gmName: 'Contrabass' },
+    'hautbois': { name: 'Hautbois', program: 68, emoji: '🎼', gmName: 'Oboe' },
+    'trompette': { name: 'Trompette', program: 56, emoji: '🎺', gmName: 'Trumpet' },
+    'xylophone': { name: 'Xylophone', program: 13, emoji: '🎼', gmName: 'Xylophone' },
+    'guitare électrique': { name: 'Guitare électrique', program: 26, emoji: '🎸', gmName: 'Electric Guitar (jazz)' },
+    'cornemuse': { name: 'Cornemuse', program: 109, emoji: '🎼', gmName: 'Bag pipe' },
+    'orgue': { name: 'Orgue', program: 16, emoji: '🎼', gmName: 'Drawbar Organ' }
 };
 
 /**
@@ -434,7 +434,12 @@ function handleValidateInstruments() {
 
         const instrumentConfigs = Array.from(selectedInstruments).map(key => INSTRUMENTS[key]);
 
-        midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
+        if (instrumentConfigs.length === 1) {
+            const instrument = instrumentConfigs[0];
+            midiExporter.export(currentScoreData, filename, instrument.program, instrument.gmName);
+        } else {
+            midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
+        }
 
         const successMsg = `✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
                           instrumentConfigs.map(i => i.name).join(', ');

@@ -333,13 +333,13 @@ class MidiExporter {
      * @param {string} filename - Nom du fichier (sans extension)
      * @param {number} program - Numéro de programme MIDI (0-127)
      */
-    export(scoreData, filename, program = 0) {
+    export(scoreData, filename, program = 0, gmName = null) {
         const ppq = 480;
 
         const events = this.generateMidiEvents(scoreData);
 
         const headerBytes = this.buildHeaderChunk(0, 1, ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events, program, 0, null);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program, 0, gmName);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
 
@@ -383,7 +383,7 @@ class MidiExporter {
         for (let i = 0; i < instruments.length; i++) {
             const instrument = instruments[i];
             const channel = i;
-            const trackName = `${instrument.name} - ${scoreData.title || 'Partition'}`;
+            const trackName = instrument.gmName || instrument.name;
 
             const trackBytes = this.buildTrackChunk(
                 scoreData,
