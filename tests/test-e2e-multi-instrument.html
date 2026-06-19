@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - E2E Multi-Instrument</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests E2E : Multi-Instrument Pipeline</h1>
+    <div id="results"></div>
+
+    <script src="../parser.js"></script>
+    <script src="../midi-export.js"></script>
+    <script src="../multi-score-manager.js"></script>
+    <script src="../multi-midi-exporter.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const parser = new Parser();
+        const midiExporter = new MidiExporter();
+        const multiMgr = new MultiScoreManager();
+        const multiMidi = new MultiMidiExporter(midiExporter);
+
+        // === Backward Compatibility ===
+        const basic = parser.parse('Au clair de la lune\n120\n4/4\nsol\nDo Do Do Re Mi2 Re2\nDo Mi Re Re Do2');
+        assert(basic.instrument === null, 'BC: no instrument in existing format');
+        assert(basic.notes.length === 11, 'BC: all notes parsed correctly');
+        assert(basic.title === 'Au clair de la lune', 'BC: title preserved');
+
+        const events = midiExporter.generateMidiEvents(basic);
+        assert(events.length === 22, 'BC: MIDI events generated (11 notes x 2)');
+
+        // === Full Pipeline: Parse → Collect → Export ===
+        const score1 = parser.parse('Violon melodie\n120\n4/4\nsol\nviolon\nDo Re Mi Fa Sol La Si');
+        const score2 = parser.parse('Piano accomp\n120\n4/4\nsol\npiano\nDoMiSol2 FaLaDo2');
+        const score3 = parser.parse('Flute solo\n120\n4/4\nsol\nflute\nMi2 Fa Sol La2');
+
+        assert(score1.instrument === 'violon', 'Pipeline: violon parsed');
+        assert(score2.instrument === 'piano', 'Pipeline: piano parsed');
+        assert(score3.instrument === 'flute', 'Pipeline: flute parsed');
+
+        multiMgr.setGlobalTitle('Trio');
+        multiMgr.addScore(score1);
+        multiMgr.addScore(score2);
+        multiMgr.addScore(score3);
+
+        assert(multiMgr.getCount() === 3, 'Pipeline: 3 scores in collection');
+
+        const midiData = multiMgr.exportForMidi();
+        const bytes = multiMidi.generateMidiBytes(midiData);
+
+        assert(bytes[8] === 0 && bytes[9] === 1, 'Pipeline: Format 1 MIDI');
+        assert(bytes[10] === 0 && bytes[11] === 4, 'Pipeline: 4 tracks (tempo + 3)');
+        assert(bytes[12] === 1 && bytes[13] === 224, 'Pipeline: PPQ 480');
+
+        // === Edge: Default instrument ===
+        const noInst = parser.parse('Test\n120\n4/4\nsol\nDo Re Mi');
+        const mgr2 = new MultiScoreManager();
+        mgr2.addScore(noInst);
+        assert(mgr2.getScore(1).instrument === 'piano', 'Default instrument is piano');
+
+        // === Edge: Case insensitive instrument ===
+        const upper = parser.parse('Test\n120\n4/4\nsol\nTROMPETTE\nDo Re');
+        assert(upper.instrument === 'trompette', 'Case insensitive instrument');
+
+        // === Edge: Line 5 is notes (not instrument) ===
+        const notesLine5 = parser.parse('Test\n120\n4/4\nsol\nDo Re Mi\nFa Sol La');
+        assert(notesLine5.instrument === null, 'Notes on line 5: no instrument');
+        assert(notesLine5.notes.length === 6, 'Notes on line 5: all parsed');
+
+        // === Edge: Channel wrapping ===
+        const mgr3 = new MultiScoreManager();
+        for (let i = 0; i < 17; i++) {
+            mgr3.addScore(score1);
+        }
+        const bigBytes = multiMidi.generateMidiBytes(mgr3.exportForMidi());
+        assert(bigBytes[10] === 0 && bigBytes[11] === 18, 'Channel wrap: 18 tracks');
+
+        displayResults();
+    </script>
+</body>
+</html>
