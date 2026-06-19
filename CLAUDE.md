@@ -342,9 +342,11 @@ L'application permet d'exporter la partition générée sous forme de fichier MI
 **Méthodes principales** :
 - `noteToMidiNumber(note, alteration, octave)` → number (0-127)
 - `generateMidiEvents(scoreData)` → Array (événements MIDI avec ticks)
-- `buildHeaderChunk(ppq)` → Array (bytes du header MThd)
-- `buildTrackChunk(scoreData, events)` → Array (bytes du track MTrk)
-- `export(scoreData, filename)` → void (génère et télécharge le fichier)
+- `buildHeaderChunk(format, numTracks, ppq)` → Array (bytes du header MThd)
+- `buildTrackChunk(scoreData, events, program, channel, trackName)` → Array (bytes du track MTrk)
+- `export(scoreData, filename, program)` → void (Format 0, télécharge le fichier)
+- `exportMultiTrack(scoreData, filename, instruments)` → void (Format 1, multi-pistes)
+- `generateMidiFile(scoreData, program)` → Blob (Format 0, en mémoire)
 
 **Fonctions utilitaires** :
 - `writeVarLength(value)` → Array (Variable Length Quantity MIDI)
@@ -352,25 +354,63 @@ L'application permet d'exporter la partition générée sous forme de fichier MI
 - `writeUint16(value)` → Array (2 bytes big-endian)
 - `writeUint32(value)` → Array (4 bytes big-endian)
 
+### Sélection d'instruments
+
+L'application permet de sélectionner **un ou plusieurs instruments** pour l'export MIDI :
+
+- **Un seul instrument** : Génère un fichier MIDI Format 0 (piste unique)
+- **Plusieurs instruments** : Génère un fichier MIDI Format 1 (multi-pistes)
+  - Une piste par instrument
+  - Toutes les pistes jouent les mêmes notes
+  - Chaque piste a son propre Program Change (timbre différent)
+  - Maximum 16 instruments (limitation MIDI : 16 canaux)
+
+### Format MIDI
+
+**Format 0 (mono-instrument) :**
+- Structure : 1 header chunk + 1 track chunk
+- Tous les événements sur le canal 0
+- Utilisé quand un seul instrument est sélectionné
+
+**Format 1 (multi-instruments) :**
+- Structure : 1 header chunk + N track chunks (N = nombre d'instruments)
+- Chaque piste a son propre canal MIDI (0-15)
+- Les pistes sont synchronisées (même tempo, même time signature)
+- Meta-événements globaux (tempo, time signature) sur la première piste uniquement
+
+### Interface utilisateur
+
+**Modale de sélection :**
+- Cliquez sur les instruments pour les sélectionner/désélectionner
+- Un indicateur de checkbox apparaît en haut à droite de chaque instrument sélectionné
+- Cliquez sur "Valider la sélection" pour générer le fichier MIDI
+- Un message de succès indique le nombre de pistes générées
+
+**Validations :**
+- Au moins 1 instrument doit être sélectionné
+- Maximum 16 instruments (limitation du format MIDI)
+- Message d'erreur clair en cas de problème
+
 ### État du bouton
 
 - **Désactivé** : Au chargement, après "Effacer", en cas d'erreur
 - **Activé** : Après génération réussie de la partition
 
-### Limitations
-
-- Format 0 uniquement (piste unique, pas de multi-pistes)
-- Pas de support des nuances (velocity fixe à 80)
-- Pas d'informations de clef ou d'armure dans le fichier MIDI
-- Pas de support des ornements ou articulations
-
 ### Compatibilité
 
-Les fichiers MIDI générés sont compatibles avec :
+Les fichiers MIDI générés (Format 0 et Format 1) sont compatibles avec :
 - Lecteurs audio : VLC, Windows Media Player, QuickTime
 - Logiciels de notation : MuseScore, Finale, Sibelius
 - DAWs : GarageBand, Logic Pro, Ableton Live, FL Studio
 - Synthétiseurs et instruments MIDI externes
+
+### Limitations
+
+- ⚠️ Pas de support des nuances (velocity fixe à 80)
+- ⚠️ Pas d'informations de clef ou d'armure dans le fichier MIDI
+- ⚠️ Pas de support des ornements ou articulations
+- ⚠️ Maximum 16 instruments simultanés (limitation MIDI)
+- ⚠️ Toutes les pistes jouent les mêmes notes (pas de polyphonie réelle avec notes différentes)
 
 ## 🔧 Comment ajouter une fonctionnalité
 
@@ -404,6 +444,31 @@ drawNuance(ctx, nuance, x, staffY) {
 2. Dans `app.js`, créer `handleExportPDF()`
 3. Capturer le canvas : `canvas.toDataURL()`
 4. Insérer dans PDF et déclencher le téléchargement
+
+### Ajouter un nouvel instrument MIDI
+
+Pour ajouter un instrument dans la liste de sélection :
+
+1. **Dans `app.js`**, ajouter l'instrument au dictionnaire `INSTRUMENTS` :
+
+```javascript
+const INSTRUMENTS = {
+    // ...
+    'saxophone': { name: 'Saxophone', program: 65, emoji: '🎷' }
+};
+```
+
+2. Les numéros de programme MIDI standards (General MIDI) :
+   - 0 : Piano acoustique
+   - 24 : Guitare acoustique
+   - 40 : Violon
+   - 56 : Trompette
+   - 65 : Saxophone alto
+   - 73 : Flûte
+
+3. L'instrument apparaît automatiquement dans la modale de sélection.
+
+4. Aucune modification nécessaire dans `midi-export.js` (gère tous les instruments via leur numéro de programme).
 
 ### Changer les positions des notes
 
@@ -485,7 +550,7 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - ✅ ~~Bémols non reconnus (Mib)~~ → Corrigé
 - ⚠️ Barres de mesure : calculées sur 4 temps fixes (ne s'adapte pas au chiffrage)
 - ⚠️ Pas de validation de la cohérence des mesures (sous-remplies ou sur-remplies)
-- ⚠️ Pas de support multi-voix
+- ✅ ~~Pas de support multi-voix~~ → Implémenté via export MIDI multi-pistes (Format 1)
 - ✅ ~~Pas d'export PNG~~ → Implémenté
 - ✅ ~~Pas d'export MIDI~~ → Implémenté
 - ✅ ~~Lecture MIDI : problème de support navigateur (Chrome)~~ → Corrigé via Web Audio API
