@@ -262,6 +262,11 @@ class MidiExporter {
         trackData.push(24); // MIDI clocks per metronome click
         trackData.push(8); // 32nds per quarter note
 
+        // Événement MIDI : Program Change (0xC0)
+        trackData.push(0); // Delta time 0
+        trackData.push(0xC0 | 0); // Program Change sur canal 0
+        trackData.push(program); // Numéro de programme MIDI (0-127)
+
         // Événements MIDI (note on/off)
         for (const event of events) {
             const deltaTime = event.tick - lastTick;
