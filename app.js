@@ -434,7 +434,12 @@ function handleValidateInstruments() {
 
         const instrumentConfigs = Array.from(selectedInstruments).map(key => INSTRUMENTS[key]);
 
-        midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
+        if (instrumentConfigs.length === 1) {
+            const instrument = instrumentConfigs[0];
+            midiExporter.export(currentScoreData, filename, instrument.program, instrument.gmName);
+        } else {
+            midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
+        }
 
         const successMsg = `✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
                           instrumentConfigs.map(i => i.name).join(', ');

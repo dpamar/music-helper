@@ -163,6 +163,28 @@ const name1 = extractTrackName(multiTracks[1]);
 assert(name0 === 'Acoustic Grand Piano', `exportMultiTrack track 0 = 'Acoustic Grand Piano' (got '${name0}')`);
 assert(name1 === 'Trumpet', `exportMultiTrack track 1 = 'Trumpet' (got '${name1}')`);
 
+// Test 6: export() method accepts gmName parameter and uses it as track name
+console.log('\n--- Test 6: export() passes gmName to buildTrackChunk ---');
+
+// Intercept buildTrackChunk to capture the trackName argument
+let capturedTrackName = null;
+const origBuild = exporter.buildTrackChunk;
+exporter.buildTrackChunk = function(...args) {
+    capturedTrackName = args[4]; // 5th arg is trackName
+    return origBuild.apply(this, args);
+};
+
+// Call export with gmName parameter (4th arg)
+try {
+    exporter.export(scoreData, 'test', 0, 'Acoustic Grand Piano');
+} catch(e) { /* DOM stubs may throw, that's fine */ }
+
+assert(capturedTrackName === 'Acoustic Grand Piano',
+    `export() passes gmName to buildTrackChunk (got '${capturedTrackName}')`);
+
+// Restore
+exporter.buildTrackChunk = origBuild;
+
 // Summary
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
 process.exit(failed > 0 ? 1 : 0);
