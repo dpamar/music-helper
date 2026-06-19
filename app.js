@@ -12,6 +12,18 @@ let midiAudioPlayer;
 let midiExporter;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
 
+// Mapping des instruments disponibles
+const INSTRUMENTS = {
+    'piano': { name: 'Piano', program: 0, emoji: '🎹' },
+    'guitare': { name: 'Guitare', program: 24, emoji: '🎸' },
+    'violon': { name: 'Violon', program: 40, emoji: '🎻' },
+    'flute': { name: 'Flûte', program: 73, emoji: '🪈' },
+    'accordeon': { name: 'Accordéon', program: 21, emoji: '🪗' },
+    'contrebasse': { name: 'Contrebasse', program: 43, emoji: '🎼' },
+    'hautbois': { name: 'Hautbois', program: 68, emoji: '🎼' },
+    'trompette': { name: 'Trompette', program: 56, emoji: '🎺' }
+};
+
 /**
  * Initialisation de l'application
  * Appelée au chargement de la page
