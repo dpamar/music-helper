@@ -11,6 +11,7 @@ let renderer;
 let midiAudioPlayer;
 let midiExporter;
 let currentScoreData = null; // Stocke les dernières données parsées pour l'export
+let selectedInstruments = new Set(); // Stocke les clés des instruments sélectionnés
 
 // Mapping des instruments disponibles
 const INSTRUMENTS = {
@@ -86,8 +87,10 @@ function init() {
     // Gestion de la modale d'instruments
     const instrumentModal = document.getElementById('instrument-modal');
     const btnCancelInstrument = document.getElementById('btn-cancel-instrument');
+    const btnValidateInstruments = document.getElementById('btn-validate-instruments');
 
     btnCancelInstrument.addEventListener('click', closeInstrumentModal);
+    btnValidateInstruments.addEventListener('click', handleValidateInstruments);
 
     instrumentModal.addEventListener('click', (e) => {
         if (e.target === instrumentModal) {
@@ -280,50 +283,6 @@ function handleExportMIDI() {
     showInstrumentModal();
 }
 
-/**
- * Gère la sélection d'un instrument pour l'export MIDI
- * @param {string} instrumentKey - Clé de l'instrument dans INSTRUMENTS
- */
-function handleInstrumentSelection(instrumentKey) {
-    const instrument = INSTRUMENTS[instrumentKey];
-    if (!instrument) {
-        console.error('Instrument inconnu:', instrumentKey);
-        return;
-    }
-
-    closeInstrumentModal();
-
-    const errorDiv = document.getElementById('error-message');
-
-    if (!currentScoreData) {
-        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
-        errorDiv.style.display = 'block';
-        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        return;
-    }
-
-    try {
-        errorDiv.style.display = 'none';
-
-        let filename = 'partition';
-
-        if (currentScoreData.title && currentScoreData.title.trim()) {
-            filename = currentScoreData.title.trim()
-                .toLowerCase()
-                .normalize('NFD').replace(/[̀-ͯ]/g, '')
-                .replace(/[^a-z0-9\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-');
-        }
-
-        midiExporter.export(currentScoreData, filename, instrument.program);
-
-    } catch (error) {
-        errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
-        errorDiv.style.display = 'block';
-        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-}
 
 /**
  * Gère le clic sur "Lire la partition" / "Arrêter"
@@ -387,11 +346,18 @@ function showInstrumentModal() {
     const grid = document.getElementById('instrument-grid');
 
     grid.textContent = '';
+    selectedInstruments.clear();
 
     for (const [key, data] of Object.entries(INSTRUMENTS)) {
         const button = document.createElement('button');
         button.className = 'instrument-button';
         button.dataset.instrument = key;
+
+        const checkbox = document.createElement('div');
+        checkbox.className = 'checkbox-indicator';
+        checkbox.textContent = '';
+        button.appendChild(checkbox);
+
         const emojiSpan = document.createElement('span');
         emojiSpan.textContent = data.emoji;
         const nameSpan = document.createElement('span');
@@ -399,7 +365,9 @@ function showInstrumentModal() {
         button.appendChild(emojiSpan);
         button.appendChild(document.createElement('br'));
         button.appendChild(nameSpan);
-        button.addEventListener('click', () => handleInstrumentSelection(key));
+
+        button.addEventListener('click', () => toggleInstrumentSelection(key, button, checkbox));
+
         grid.appendChild(button);
     }
 
@@ -408,6 +376,68 @@ function showInstrumentModal() {
     const firstButton = grid.querySelector('.instrument-button');
     if (firstButton) {
         firstButton.focus();
+    }
+}
+
+/**
+ * Gère le toggle d'un instrument dans la sélection multiple
+ */
+function toggleInstrumentSelection(instrumentKey, button, checkbox) {
+    if (selectedInstruments.has(instrumentKey)) {
+        selectedInstruments.delete(instrumentKey);
+        button.classList.remove('selected');
+        checkbox.textContent = '';
+    } else {
+        selectedInstruments.add(instrumentKey);
+        button.classList.add('selected');
+        checkbox.textContent = '✓';
+    }
+}
+
+/**
+ * Gère la validation de la sélection multiple d'instruments
+ */
+function handleValidateInstruments() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (selectedInstruments.size === 0) {
+        errorDiv.textContent = '❌ Veuillez sélectionner au moins un instrument';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    closeInstrumentModal();
+
+    if (!currentScoreData) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        let filename = 'partition';
+
+        if (currentScoreData.title && currentScoreData.title.trim()) {
+            filename = currentScoreData.title.trim()
+                .toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+        }
+
+        const instrumentConfigs = Array.from(selectedInstruments).map(key => INSTRUMENTS[key]);
+
+        midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
+
+    } catch (error) {
+        errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
