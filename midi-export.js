@@ -383,7 +383,7 @@ class MidiExporter {
         for (let i = 0; i < instruments.length; i++) {
             const instrument = instruments[i];
             const channel = i;
-            const trackName = `${instrument.name} - ${scoreData.title || 'Partition'}`;
+            const trackName = instrument.gmName || instrument.name;
 
             const trackBytes = this.buildTrackChunk(
                 scoreData,
