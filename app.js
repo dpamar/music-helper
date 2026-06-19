@@ -332,6 +332,46 @@ function setPlayButtonState(enabled) {
     }
 }
 
+/**
+ * Affiche la modale de sélection d'instrument
+ */
+function showInstrumentModal() {
+    const modal = document.getElementById('instrument-modal');
+    const grid = document.getElementById('instrument-grid');
+
+    grid.textContent = '';
+
+    for (const [key, data] of Object.entries(INSTRUMENTS)) {
+        const button = document.createElement('button');
+        button.className = 'instrument-button';
+        button.dataset.instrument = key;
+        const emojiSpan = document.createElement('span');
+        emojiSpan.textContent = data.emoji;
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = data.name;
+        button.appendChild(emojiSpan);
+        button.appendChild(document.createElement('br'));
+        button.appendChild(nameSpan);
+        button.addEventListener('click', () => handleInstrumentSelection(key));
+        grid.appendChild(button);
+    }
+
+    modal.style.display = 'flex';
+
+    const firstButton = grid.querySelector('.instrument-button');
+    if (firstButton) {
+        firstButton.focus();
+    }
+}
+
+/**
+ * Ferme la modale de sélection d'instrument
+ */
+function closeInstrumentModal() {
+    const modal = document.getElementById('instrument-modal');
+    modal.style.display = 'none';
+}
+
 // Lance l'initialisation au chargement de la page
 // DOMContentLoaded s'assure que le DOM est prêt avant d'exécuter le code
 document.addEventListener('DOMContentLoaded', init);
