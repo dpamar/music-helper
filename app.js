@@ -401,9 +401,12 @@ function handleValidateInstruments() {
     const errorDiv = document.getElementById('error-message');
 
     if (selectedInstruments.size === 0) {
-        errorDiv.textContent = '❌ Veuillez sélectionner au moins un instrument';
-        errorDiv.style.display = 'block';
-        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        alert('⚠️ Veuillez sélectionner au moins un instrument');
+        return;
+    }
+
+    if (selectedInstruments.size > 16) {
+        alert('⚠️ Maximum 16 instruments (limitation du format MIDI)');
         return;
     }
 
@@ -434,9 +437,27 @@ function handleValidateInstruments() {
 
         midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
 
+        const successMsg = `✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
+                          instrumentConfigs.map(i => i.name).join(', ');
+        errorDiv.textContent = successMsg;
+        errorDiv.style.display = 'block';
+        errorDiv.style.background = '#d4edda';
+        errorDiv.style.color = '#155724';
+        errorDiv.style.borderColor = '#c3e6cb';
+
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+            errorDiv.style.background = '';
+            errorDiv.style.color = '';
+            errorDiv.style.borderColor = '';
+        }, 5000);
+
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
         errorDiv.style.display = 'block';
+        errorDiv.style.background = '';
+        errorDiv.style.color = '';
+        errorDiv.style.borderColor = '';
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
