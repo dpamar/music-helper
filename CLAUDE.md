@@ -18,14 +18,16 @@ Cette application permet aux musiciens de :
 
 ```
 music-helper/
-├── index.html          # Page principale et structure DOM
-├── styles.css          # Design et mise en page
-├── parser.js           # Parse la notation textuelle → structures de données
-├── renderer.js         # Rendu graphique Canvas → portée musicale
-├── midi-audio-player.js # Lecture MIDI via élément HTML <audio>
-├── midi-export.js      # Export de fichiers MIDI (téléchargement .mid)
-├── app.js              # Orchestration et gestion des événements
-└── CLAUDE.md           # Ce fichier
+├── index.html            # Page principale et structure DOM
+├── styles.css            # Design et mise en page
+├── parser.js             # Parse la notation textuelle → structures de données
+├── renderer.js           # Rendu graphique Canvas → portée musicale
+├── midi-audio-player.js  # Lecture MIDI via élément HTML <audio>
+├── midi-export.js        # Export de fichiers MIDI (téléchargement .mid)
+├── multi-score-manager.js # Gestion de collection de partitions multiples
+├── multi-midi-exporter.js # Export MIDI Format 1 (multi-pistes)
+├── app.js                # Orchestration et gestion des événements
+└── CLAUDE.md             # Ce fichier
 ```
 
 ### Flux de données
@@ -72,6 +74,31 @@ Ligne 5+ : Notes et silences séparés par des espaces
   - `DoMiSol2` = accord de Do majeur (blanche)
   - La durée s'applique à tout l'accord
 - **Silence** : `S`, `S2`, `S0.5`, etc.
+
+### Instrument (ligne 5 optionnelle)
+
+L'application supporte la définition d'un instrument par partition :
+
+```
+Titre de la partition
+120
+4/4
+sol
+violon              # ligne 5 optionnelle
+Do Re Mi Fa Sol
+```
+
+Si la ligne 5 n'est pas reconnue comme un instrument, elle est traitée comme la première ligne de notes (backward compatible).
+
+**Instruments reconnus** :
+- `piano` → Piano (MIDI program 0)
+- `guitare` → Guitare (MIDI program 24)
+- `violon` → Violon (MIDI program 40)
+- `flute` → Flute (MIDI program 73)
+- `accordeon` → Accordeon (MIDI program 21)
+- `contrebasse` → Contrebasse (MIDI program 43)
+- `hautbois` → Hautbois (MIDI program 68)
+- `trompette` → Trompette (MIDI program 56)
 
 ### Exemples
 
@@ -229,6 +256,42 @@ getYPosition(position, staffY = null) {
 - Bémol : `♭` (U+266D)
 - Bécarre : `♮` (U+266E)
 - Silences : `𝄻 𝄼 𝄽 𝄾 𝄿` (U+1D13B-1D13F)
+
+### `multi-score-manager.js` - Gestionnaire de partitions multiples
+
+**Classe** : `MultiScoreManager`
+
+**Responsabilite** : Gerer une collection de partitions pour creer un orchestre multi-instruments.
+
+**Methodes principales** :
+- `addScore(scoreData)` → number (ID de la partition ajoutee)
+- `removeScore(id)` → boolean
+- `getScore(id)` → Object | null
+- `getAllScores()` → Array
+- `getCount()` → number
+- `isEmpty()` → boolean
+- `clear()` → void
+- `updateInstrument(id, instrument)` → boolean
+- `exportForMidi()` → Object (structure pour export MIDI)
+
+### `multi-midi-exporter.js` - Exportateur MIDI multi-pistes
+
+**Classe** : `MultiMidiExporter`
+
+**Responsabilite** : Exporter plusieurs partitions en un seul fichier MIDI Format 1 (multi-pistes).
+
+**Methodes principales** :
+- `buildHeaderChunk(numTracks, ppq)` → Array (bytes du header Format 1)
+- `buildTempoTrack(firstScoreData, ppq)` → Array (piste 0 : tempo/metadonnees)
+- `buildTrackChunkForScore(scoreData, instrument, channel, ppq)` → Array (piste N)
+- `generateMidiBytes(multiScoreData)` → Uint8Array (fichier MIDI complet)
+- `export(multiScoreData, filename)` → void (genere et telecharge)
+
+**Format MIDI** :
+- **Format 1** : Multi-pistes (1 piste par partition + 1 piste de tempo)
+- **Piste 0** : Metadonnees (tempo, time signature)
+- **Pistes 1..N** : Une partition par piste, avec son instrument (Program Change)
+- **Canaux MIDI** : 0-15 (wrappe si > 16 pistes)
 
 ### `app.js` - Orchestration
 
@@ -477,6 +540,71 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - **Pas de nuances** : Toutes les notes au même volume
 - **Timbre fixe** : Onde sinusoïdale uniquement (pourrait être enrichi avec `triangle`, `sawtooth`, etc.)
 
+## 🎼 Orchestres multi-instruments
+
+L'application permet de creer des orchestres en combinant plusieurs partitions avec differents instruments.
+
+### Fonctionnement
+
+1. **Ajouter des partitions** :
+   - Saisissez une partition avec un instrument en ligne 5
+   - Cliquez sur "Generer la partition"
+   - Cliquez sur "Ajouter la partition actuelle"
+   - Repetez pour chaque instrument
+
+2. **Gerer les partitions** :
+   - Liste des partitions actives avec titre et instrument
+   - Suppression individuelle
+   - Export individuel d'une partition en MIDI
+
+3. **Export MIDI** :
+   - **Export individuel** : Genere un fichier MIDI par partition (Format 0, mono-piste)
+   - **Export global** : Genere un seul fichier MIDI multi-pistes (Format 1) avec toutes les partitions
+
+### Structure MIDI Format 1
+
+```
+Fichier MIDI multi-pistes :
+├── Header (MThd) : Format 1, N+1 pistes
+├── Piste 0 : Tempo Track (metadonnees globales)
+│   ├── Track Name : "Tempo Track"
+│   ├── Set Tempo : 120 BPM
+│   └── Time Signature : 4/4
+├── Piste 1 : Violon (canal MIDI 0)
+│   ├── Track Name : "Violon principal"
+│   ├── Program Change : 40 (violon)
+│   └── Note events...
+├── Piste 2 : Piano (canal MIDI 1)
+│   ├── Track Name : "Piano accompagnement"
+│   ├── Program Change : 0 (piano)
+│   └── Note events...
+└── ...
+```
+
+### Exemple d'utilisation
+
+**Partition 1 (Violon)** :
+```
+Melodie violon
+120
+4/4
+sol
+violon
+Do Re Mi Fa Sol La Si Do+
+```
+
+**Partition 2 (Piano)** :
+```
+Accompagnement piano
+120
+4/4
+sol
+piano
+DoMiSol2 FaLaDo2
+```
+
+→ **Resultat** : Fichier MIDI avec 2 pistes synchronisees
+
 ## 🐛 Bugs connus / Limitations
 
 - ✅ ~~Do et Ré médiums mal positionnés~~ → Corrigé
@@ -485,12 +613,15 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - ✅ ~~Bémols non reconnus (Mib)~~ → Corrigé
 - ⚠️ Barres de mesure : calculées sur 4 temps fixes (ne s'adapte pas au chiffrage)
 - ⚠️ Pas de validation de la cohérence des mesures (sous-remplies ou sur-remplies)
-- ⚠️ Pas de support multi-voix
+- ⚠️ Pas de support multi-voix sur une même portée
 - ✅ ~~Pas d'export PNG~~ → Implémenté
 - ✅ ~~Pas d'export MIDI~~ → Implémenté
 - ✅ ~~Lecture MIDI : problème de support navigateur (Chrome)~~ → Corrigé via Web Audio API
 - ⚠️ Lecture MIDI : son synthétique (oscillateurs simples), pas de son réaliste
 - ⚠️ Lecture MIDI : la sélection d'instrument n'affecte PAS le bouton "Lire la partition" (son synthétique uniforme), seulement l'export MIDI
+- ✅ ~~Pas de support multi-instruments~~ → Implémenté (Format 1 multi-pistes)
+- ⚠️ Export multi-pistes : limite de 16 canaux MIDI (wrappe si > 16 pistes)
+- ⚠️ Export multi-pistes : toutes les pistes doivent avoir le même tempo et chiffrage (utilise ceux de la première partition)
 - ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
 
 ## 📚 Ressources
