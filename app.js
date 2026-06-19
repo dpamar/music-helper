@@ -283,7 +283,6 @@ function handleExportMIDI() {
     showInstrumentModal();
 }
 
-
 /**
  * Gère le clic sur "Lire la partition" / "Arrêter"
  */
