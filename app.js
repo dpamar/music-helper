@@ -21,7 +21,11 @@ const INSTRUMENTS = {
     'accordeon': { name: 'Accordéon', program: 21, emoji: '🪗' },
     'contrebasse': { name: 'Contrebasse', program: 43, emoji: '🎼' },
     'hautbois': { name: 'Hautbois', program: 68, emoji: '🎼' },
-    'trompette': { name: 'Trompette', program: 56, emoji: '🎺' }
+    'trompette': { name: 'Trompette', program: 56, emoji: '🎺' },
+	'xylophone': { name: 'xylophone', program: 13, emoji: '🎼' },
+	'guitare électrique': { name: 'Guitare électrique', program: 26, emoji: '🎸' },
+	'cornemuse': { name: 'cornemuse', program: 109, emoji: '🎼' },
+	'orgue': { name: 'orgue', program: 16, emoji: '🎼' }
 };
 
 /**
