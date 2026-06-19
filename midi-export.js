@@ -222,7 +222,7 @@ class MidiExporter {
      * @param {Array} events - Événements MIDI générés
      * @returns {Array<number>} Bytes du track chunk
      */
-    buildTrackChunk(scoreData, events) {
+    buildTrackChunk(scoreData, events, program = 0) {
         const trackData = [];
         let lastTick = 0;
 
@@ -300,13 +300,13 @@ class MidiExporter {
      * @param {Object} scoreData - Données de partition parsées
      * @returns {Blob} Blob MIDI de type 'audio/midi'
      */
-    generateMidiFile(scoreData) {
+    generateMidiFile(scoreData, program = 0) {
         const ppq = 480;
 
         const events = this.generateMidiEvents(scoreData);
 
         const headerBytes = this.buildHeaderChunk(ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
 
@@ -318,13 +318,13 @@ class MidiExporter {
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
      */
-    export(scoreData, filename) {
+    export(scoreData, filename, program = 0) {
         const ppq = 480;
 
         const events = this.generateMidiEvents(scoreData);
 
         const headerBytes = this.buildHeaderChunk(ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
 
