@@ -37,6 +37,33 @@ Do Re Mi Fa Sol La Si Do+"></textarea>
                 <div id="error-message" class="error-message" style="display: none;"></div>
             </section>
 
+            <!-- Zone de gestion des partitions -->
+            <section class="multi-score-section">
+                <h2>Partitions de l'orchestre</h2>
+                <div class="help-text">
+                    <strong>Multi-instruments :</strong> Ajoutez plusieurs partitions avec différents instruments pour créer un orchestre.
+                </div>
+
+                <div class="multi-score-controls">
+                    <input type="text" id="global-title-input" placeholder="Titre de l'orchestre" value="Mon Orchestre">
+                    <button id="btn-add-score" class="btn-primary">Ajouter la partition actuelle</button>
+                    <button id="btn-clear-all-scores" class="btn-secondary">Effacer toutes les partitions</button>
+                </div>
+
+                <div id="scores-list" class="scores-list">
+                    <p class="placeholder">Aucune partition ajoutée pour l'instant</p>
+                </div>
+
+                <div class="multi-export-actions">
+                    <button id="btn-export-individual" class="btn-secondary" disabled>
+                        💾 Exporter chaque partition (MIDI)
+                    </button>
+                    <button id="btn-export-multi" class="btn-secondary" disabled>
+                        🎼 Exporter l'orchestre complet (MIDI)
+                    </button>
+                </div>
+            </section>
+
             <!-- Zone de rendu -->
             <section class="render-section">
                 <h2>Partition générée</h2>
@@ -80,6 +107,8 @@ Do Re Mi Fa Sol La Si Do+"></textarea>
     <script src="renderer.js"></script>
     <script src="midi-export.js"></script>
     <script src="midi-audio-player.js"></script>
+    <script src="multi-score-manager.js"></script>
+    <script src="multi-midi-exporter.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
