@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - MultiScoreManager</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : MultiScoreManager</h1>
+    <div id="results"></div>
+
+    <script src="../multi-score-manager.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const manager = new MultiScoreManager();
+
+        // Test: starts empty
+        assert(manager.isEmpty() === true, 'Starts empty');
+        assert(manager.getCount() === 0, 'Count is 0');
+
+        // Test: addScore returns incrementing IDs
+        const scoreData1 = { title: 'Violon', instrument: 'violon', notes: [] };
+        const scoreData2 = { title: 'Piano', instrument: 'piano', notes: [] };
+        const id1 = manager.addScore(scoreData1);
+        const id2 = manager.addScore(scoreData2);
+        assert(id1 === 1, 'First ID is 1');
+        assert(id2 === 2, 'Second ID is 2');
+        assert(manager.getCount() === 2, 'Count is 2 after adding 2');
+        assert(manager.isEmpty() === false, 'Not empty after adding');
+
+        // Test: addScore throws on null
+        let threw = false;
+        try { manager.addScore(null); } catch (e) { threw = true; }
+        assert(threw === true, 'addScore throws on null scoreData');
+
+        // Test: getScore by ID
+        const got1 = manager.getScore(id1);
+        assert(got1 !== null, 'getScore returns non-null for valid ID');
+        assert(got1.id === id1, 'getScore returns correct ID');
+        assert(got1.scoreData.title === 'Violon', 'getScore returns correct scoreData');
+        assert(got1.instrument === 'violon', 'getScore returns correct instrument');
+
+        // Test: getScore with invalid ID
+        assert(manager.getScore(999) === null, 'getScore returns null for invalid ID');
+
+        // Test: getAllScores
+        const all = manager.getAllScores();
+        assert(all.length === 2, 'getAllScores returns 2 items');
+        assert(all[0].id === id1, 'getAllScores first item ID correct');
+        assert(all[1].id === id2, 'getAllScores second item ID correct');
+
+        // Test: removeScore
+        const removed = manager.removeScore(id1);
+        assert(removed === true, 'removeScore returns true for valid ID');
+        assert(manager.getCount() === 1, 'Count is 1 after removal');
+        assert(manager.getScore(id1) === null, 'Removed score not found');
+
+        // Test: removeScore with invalid ID
+        assert(manager.removeScore(999) === false, 'removeScore returns false for invalid ID');
+
+        // Test: updateInstrument
+        const updated = manager.updateInstrument(id2, 'guitare');
+        assert(updated === true, 'updateInstrument returns true');
+        assert(manager.getScore(id2).instrument === 'guitare', 'Instrument updated');
+        assert(manager.getScore(id2).scoreData.instrument === 'guitare', 'scoreData.instrument updated');
+
+        // Test: updateInstrument with invalid ID
+        assert(manager.updateInstrument(999, 'flute') === false, 'updateInstrument returns false for invalid ID');
+
+        // Test: setGlobalTitle
+        manager.setGlobalTitle('Mon Orchestre');
+        assert(manager.exportForMidi().globalTitle === 'Mon Orchestre', 'Global title set');
+
+        // Test: setGlobalTitle with empty string defaults
+        manager.setGlobalTitle('');
+        assert(manager.exportForMidi().globalTitle === 'Orchestre', 'Empty title defaults to Orchestre');
+
+        // Test: exportForMidi structure
+        manager.setGlobalTitle('Test Export');
+        const exported = manager.exportForMidi();
+        assert(exported.globalTitle === 'Test Export', 'exportForMidi has globalTitle');
+        assert(Array.isArray(exported.scores), 'exportForMidi has scores array');
+        assert(exported.scores.length === 1, 'exportForMidi has 1 score');
+
+        // Test: clear
+        manager.clear();
+        assert(manager.isEmpty() === true, 'Empty after clear');
+        assert(manager.getCount() === 0, 'Count 0 after clear');
+
+        // Test: IDs reset after clear
+        const idAfterClear = manager.addScore({ title: 'New', instrument: 'piano', notes: [] });
+        assert(idAfterClear === 1, 'ID resets to 1 after clear');
+
+        // Test: default instrument is piano when scoreData has no instrument
+        manager.clear();
+        const noInstrument = manager.addScore({ title: 'No inst', notes: [] });
+        assert(manager.getScore(noInstrument).instrument === 'piano', 'Default instrument is piano');
+
+        displayResults();
+    </script>
+</body>
+</html>
