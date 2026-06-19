@@ -79,6 +79,24 @@ function init() {
         }
     });
 
+    // Gestion de la modale d'instruments
+    const instrumentModal = document.getElementById('instrument-modal');
+    const btnCancelInstrument = document.getElementById('btn-cancel-instrument');
+
+    btnCancelInstrument.addEventListener('click', closeInstrumentModal);
+
+    instrumentModal.addEventListener('click', (e) => {
+        if (e.target === instrumentModal) {
+            closeInstrumentModal();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && instrumentModal.style.display === 'flex') {
+            closeInstrumentModal();
+        }
+    });
+
     console.log('✅ Application initialisée');
 }
 
