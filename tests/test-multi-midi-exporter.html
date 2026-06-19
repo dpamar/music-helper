@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - MultiMidiExporter</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : MultiMidiExporter - Format 1 Multi-Track</h1>
+    <div id="results"></div>
+
+    <script src="../midi-export.js"></script>
+    <script src="../multi-midi-exporter.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const midiExporter = new MidiExporter();
+        const multiExporter = new MultiMidiExporter(midiExporter);
+
+        // Test: class instantiation
+        assert(multiExporter instanceof MultiMidiExporter, 'MultiMidiExporter instantiates');
+
+        // Test: buildHeaderChunk Format 1
+        const header = multiExporter.buildHeaderChunk(3, 480);
+        // MThd
+        assert(header[0] === 77 && header[1] === 84 && header[2] === 104 && header[3] === 100, 'Header starts with MThd');
+        // Size = 6
+        assert(header[7] === 6, 'Header size is 6');
+        // Format = 1
+        assert(header[8] === 0 && header[9] === 1, 'Format is 1');
+        // Num tracks = 3
+        assert(header[10] === 0 && header[11] === 3, 'Num tracks is 3');
+        // PPQ = 480 (0x01E0)
+        assert(header[12] === 1 && header[13] === 224, 'PPQ is 480');
+
+        // Test: buildTempoTrack
+        const scoreData = {
+            title: 'Test',
+            tempo: 120,
+            timeSignature: { numerator: 4, denominator: 4 },
+            keySignature: [],
+            notes: []
+        };
+        const tempoTrack = multiExporter.buildTempoTrack(scoreData, 480);
+        // Starts with MTrk
+        assert(tempoTrack[0] === 77 && tempoTrack[1] === 84 && tempoTrack[2] === 114 && tempoTrack[3] === 107, 'Tempo track starts with MTrk');
+        // Contains tempo meta event (0xFF 0x51)
+        const tempoTrackStr = tempoTrack.join(',');
+        assert(tempoTrackStr.includes('255,81,3'), 'Tempo track contains Set Tempo event');
+        // Contains time sig meta event (0xFF 0x58)
+        assert(tempoTrackStr.includes('255,88,4'), 'Tempo track contains Time Signature event');
+        // Ends with End of Track (0xFF 0x2F 0x00)
+        const lastThree = tempoTrack.slice(-3);
+        assert(lastThree[0] === 255 && lastThree[1] === 47 && lastThree[2] === 0, 'Tempo track ends with End of Track');
+
+        // Test: buildTrackChunkForScore
+        const scoreWithNotes = {
+            title: 'Violon 1',
+            tempo: 120,
+            timeSignature: { numerator: 4, denominator: 4 },
+            keySignature: [],
+            notes: [
+                { type: 'note', note: 'C', alteration: '', octave: 0, duration: 1 },
+                { type: 'note', note: 'E', alteration: '', octave: 0, duration: 1 }
+            ]
+        };
+        const track = multiExporter.buildTrackChunkForScore(scoreWithNotes, 'violon', 1, 480);
+        // Starts with MTrk
+        assert(track[0] === 77 && track[1] === 84 && track[2] === 114 && track[3] === 107, 'Track starts with MTrk');
+        // Contains Program Change for channel 1 (0xC1) with program 40 (violon)
+        const trackStr = track.join(',');
+        assert(trackStr.includes('193,40'), 'Track has Program Change channel 1, program 40 (violon)');
+        // Contains note events
+        assert(trackStr.includes('145,'), 'Track has Note On on channel 1 (0x91)');
+        assert(trackStr.includes('129,'), 'Track has Note Off on channel 1 (0x81)');
+
+        // Test: export throws on empty data
+        let threwEmpty = false;
+        try {
+            multiExporter.export(null, 'test');
+        } catch (e) {
+            threwEmpty = true;
+        }
+        assert(threwEmpty === true, 'export throws on null data');
+
+        let threwNoScores = false;
+        try {
+            multiExporter.export({ globalTitle: 'Test', scores: [] }, 'test');
+        } catch (e) {
+            threwNoScores = true;
+        }
+        assert(threwNoScores === true, 'export throws on empty scores');
+
+        // Test: generateMidiBytes produces correct structure
+        const multiScoreData = {
+            globalTitle: 'Orchestre',
+            scores: [
+                { id: 1, scoreData: scoreWithNotes, instrument: 'violon' },
+                { id: 2, scoreData: { ...scoreWithNotes, title: 'Piano' }, instrument: 'piano' }
+            ]
+        };
+        const bytes = multiExporter.generateMidiBytes(multiScoreData);
+        assert(bytes instanceof Uint8Array, 'generateMidiBytes returns Uint8Array');
+        // Check header: Format 1, 3 tracks (tempo + 2 scores)
+        assert(bytes[8] === 0 && bytes[9] === 1, 'Output is Format 1');
+        assert(bytes[10] === 0 && bytes[11] === 3, 'Output has 3 tracks');
+
+        // Test: channels are distinct for different scores
+        const track0 = multiExporter.buildTrackChunkForScore(scoreWithNotes, 'violon', 0, 480);
+        const track2 = multiExporter.buildTrackChunkForScore(scoreWithNotes, 'piano', 2, 480);
+        const track0Str = track0.join(',');
+        const track2Str = track2.join(',');
+        assert(track0Str.includes('192,40'), 'Track on channel 0: Program Change 0xC0');
+        assert(track2Str.includes('194,0'), 'Track on channel 2: Program Change 0xC2, program 0');
+
+        displayResults();
+    </script>
+</body>
+</html>
