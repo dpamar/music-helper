@@ -330,7 +330,12 @@ L'application permet d'exporter la partition générée sous forme de fichier MI
    - Exemple : `"Au clair de la lune"` → `au-clair-de-la-lune.mid`
    - Par défaut : `partition.mid` si pas de titre
 
-6. **Téléchargement** :
+6. **Nom des pistes** :
+   - Utilise les noms officiels du standard General MIDI (ex: "Acoustic Grand Piano", "Violin")
+   - Format 0 (mono-instrument) : nom GM de l'instrument sélectionné
+   - Format 1 (multi-instruments) : chaque piste porte le nom GM de son instrument
+
+7. **Téléchargement** :
    - Blob de type `audio/midi`
    - Lien temporaire avec attribut `download`
    - Nettoyage automatique après téléchargement
@@ -454,21 +459,23 @@ Pour ajouter un instrument dans la liste de sélection :
 ```javascript
 const INSTRUMENTS = {
     // ...
-    'saxophone': { name: 'Saxophone', program: 65, emoji: '🎷' }
+    'saxophone': { name: 'Saxophone', program: 65, emoji: '🎷', gmName: 'Alto Sax' }
 };
 ```
 
-2. Les numéros de programme MIDI standards (General MIDI) :
-   - 0 : Piano acoustique
-   - 24 : Guitare acoustique
-   - 40 : Violon
-   - 56 : Trompette
-   - 65 : Saxophone alto
-   - 73 : Flûte
+2. Les numéros de programme MIDI standards (General MIDI) et leurs noms officiels :
+   - 0 : Acoustic Grand Piano
+   - 24 : Acoustic Guitar (nylon)
+   - 40 : Violin
+   - 56 : Trumpet
+   - 65 : Alto Sax
+   - 73 : Flute
 
-3. L'instrument apparaît automatiquement dans la modale de sélection.
+3. Consulter la liste complète des noms GM : https://en.wikipedia.org/wiki/General_MIDI#Program_change_events
 
-4. Aucune modification nécessaire dans `midi-export.js` (gère tous les instruments via leur numéro de programme).
+4. L'instrument apparaît automatiquement dans la modale de sélection.
+
+5. Aucune modification nécessaire dans `midi-export.js` (gère tous les instruments via leur numéro de programme et nom GM).
 
 ### Changer les positions des notes
 
