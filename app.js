@@ -243,9 +243,34 @@ function handleExportPNG() {
 
 /**
  * Gère le clic sur "Exporter en MIDI"
- * Génère un fichier MIDI et déclenche le téléchargement
+ * Affiche la modale de sélection d'instrument
  */
 function handleExportMIDI() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (!currentScoreData) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    showInstrumentModal();
+}
+
+/**
+ * Gère la sélection d'un instrument pour l'export MIDI
+ * @param {string} instrumentKey - Clé de l'instrument dans INSTRUMENTS
+ */
+function handleInstrumentSelection(instrumentKey) {
+    const instrument = INSTRUMENTS[instrumentKey];
+    if (!instrument) {
+        console.error('Instrument inconnu:', instrumentKey);
+        return;
+    }
+
+    closeInstrumentModal();
+
     const errorDiv = document.getElementById('error-message');
 
     if (!currentScoreData) {
@@ -269,7 +294,7 @@ function handleExportMIDI() {
                 .replace(/-+/g, '-');
         }
 
-        midiExporter.export(currentScoreData, filename);
+        midiExporter.export(currentScoreData, filename, instrument.program);
 
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
