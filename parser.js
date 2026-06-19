@@ -50,8 +50,20 @@ class Parser {
         const timeSignature = this.parseTimeSignature(lines[2]);
         const { clef, keySignature } = this.parseClefAndKey(lines[3]);
 
-        // Parse les notes (toutes les lignes après la ligne 4)
-        const noteLines = lines.slice(4).filter(line => line.length > 0);
+        // Tente de parser la ligne 5 comme instrument
+        let instrument = null;
+        let noteLinesStartIndex = 4;
+
+        if (lines.length > 5 || lines[4].trim().length > 0) {
+            const parsedInstrument = this.parseInstrument(lines[4]);
+            if (parsedInstrument !== null) {
+                instrument = parsedInstrument;
+                noteLinesStartIndex = 5;
+            }
+        }
+
+        // Parse les notes (à partir de noteLinesStartIndex)
+        const noteLines = lines.slice(noteLinesStartIndex).filter(line => line.length > 0);
         const notes = this.parseNotes(noteLines.join(' '));
 
         return {
@@ -60,8 +72,24 @@ class Parser {
             timeSignature,
             clef,
             keySignature,
+            instrument,
             notes
         };
+    }
+
+    /**
+     * Parse l'instrument (ligne 5 optionnelle)
+     * @param {string} instrumentStr - Nom de l'instrument
+     * @returns {string|null} - Nom de l'instrument ou null si non reconnu
+     */
+    parseInstrument(instrumentStr) {
+        const validInstruments = [
+            'piano', 'guitare', 'violon', 'flute',
+            'accordeon', 'contrebasse', 'hautbois', 'trompette'
+        ];
+
+        const normalized = instrumentStr.trim().toLowerCase();
+        return validInstruments.includes(normalized) ? normalized : null;
     }
 
     /**

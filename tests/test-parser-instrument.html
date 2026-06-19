@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Parser Instrument</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Parser - Instrument (ligne 5 optionnelle)</h1>
+    <div id="results"></div>
+
+    <script src="../parser.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const parser = new Parser();
+
+        // Test: parseInstrument method exists
+        assert(typeof parser.parseInstrument === 'function', 'parseInstrument method exists');
+
+        // Test: parseInstrument recognizes valid instruments
+        assert(parser.parseInstrument('piano') === 'piano', 'Recognizes "piano"');
+        assert(parser.parseInstrument('violon') === 'violon', 'Recognizes "violon"');
+        assert(parser.parseInstrument('guitare') === 'guitare', 'Recognizes "guitare"');
+        assert(parser.parseInstrument('flute') === 'flute', 'Recognizes "flute"');
+        assert(parser.parseInstrument('accordeon') === 'accordeon', 'Recognizes "accordeon"');
+        assert(parser.parseInstrument('contrebasse') === 'contrebasse', 'Recognizes "contrebasse"');
+        assert(parser.parseInstrument('hautbois') === 'hautbois', 'Recognizes "hautbois"');
+        assert(parser.parseInstrument('trompette') === 'trompette', 'Recognizes "trompette"');
+
+        // Test: parseInstrument is case-insensitive
+        assert(parser.parseInstrument('Piano') === 'piano', 'Case-insensitive: "Piano"');
+        assert(parser.parseInstrument('VIOLON') === 'violon', 'Case-insensitive: "VIOLON"');
+
+        // Test: parseInstrument trims whitespace
+        assert(parser.parseInstrument('  piano  ') === 'piano', 'Trims whitespace');
+
+        // Test: parseInstrument returns null for invalid instruments
+        assert(parser.parseInstrument('Do Re Mi') === null, 'Returns null for notes');
+        assert(parser.parseInstrument('banjo') === null, 'Returns null for unknown instrument');
+        assert(parser.parseInstrument('') === null, 'Returns null for empty string');
+
+        // Test: parse() with instrument on line 5 (6 lines total)
+        const withInstrument = `Melodie violon
+120
+4/4
+sol
+violon
+Do Re Mi Fa Sol`;
+        const result1 = parser.parse(withInstrument);
+        assert(result1.instrument === 'violon', 'parse() extracts instrument from line 5');
+        assert(result1.notes.length === 5, 'parse() with instrument: 5 notes parsed from line 6');
+        assert(result1.notes[0].note === 'C', 'First note is C (Do)');
+
+        // Test: parse() without instrument (5 lines, backward compatible)
+        const withoutInstrument = `Au clair de la lune
+120
+4/4
+sol
+Do Re Mi Fa Sol`;
+        const result2 = parser.parse(withoutInstrument);
+        assert(result2.instrument === null, 'parse() without instrument: instrument is null');
+        assert(result2.notes.length === 5, 'parse() without instrument: 5 notes parsed from line 5');
+
+        // Test: parse() with line 5 containing notes (not instrument)
+        const notesOnLine5 = `Gamme
+120
+4/4
+sol
+Do Re Mi
+Fa Sol La`;
+        const result3 = parser.parse(notesOnLine5);
+        assert(result3.instrument === null, 'Line 5 with notes: instrument is null');
+        assert(result3.notes.length === 6, 'Line 5 with notes: all 6 notes parsed');
+
+        // Test: parse() with instrument preserves other fields
+        const fullScore = `Mon morceau
+100
+3/4
+sol Do# Fa#
+flute
+Mi Fa Sol`;
+        const result4 = parser.parse(fullScore);
+        assert(result4.title === 'Mon morceau', 'Title preserved with instrument');
+        assert(result4.tempo === 100, 'Tempo preserved with instrument');
+        assert(result4.timeSignature.numerator === 3, 'Time signature preserved');
+        assert(result4.clef === 'sol', 'Clef preserved');
+        assert(result4.keySignature.length === 2, 'Key signature preserved');
+        assert(result4.instrument === 'flute', 'Instrument is flute');
+        assert(result4.notes.length === 3, '3 notes parsed after instrument line');
+
+        displayResults();
+    </script>
+</body>
+</html>
