@@ -192,10 +192,12 @@ class MidiExporter {
 
     /**
      * Construit le chunk header MIDI (MThd)
+     * @param {number} format - Format MIDI (0 = single track, 1 = multi-track)
+     * @param {number} numTracks - Nombre de pistes
      * @param {number} ppq - Pulses per quarter note
      * @returns {Array<number>} Bytes du header chunk
      */
-    buildHeaderChunk(ppq) {
+    buildHeaderChunk(format, numTracks, ppq) {
         const bytes = [];
 
         // "MThd" (4 bytes)
@@ -204,11 +206,11 @@ class MidiExporter {
         // Taille du header (toujours 6 bytes)
         bytes.push(...this.writeUint32(6));
 
-        // Format 0 (single track)
-        bytes.push(...this.writeUint16(0));
+        // Format (0 ou 1)
+        bytes.push(...this.writeUint16(format));
 
-        // Nombre de pistes (1)
-        bytes.push(...this.writeUint16(1));
+        // Nombre de pistes
+        bytes.push(...this.writeUint16(numTracks));
 
         // Division temporelle (ticks per quarter note)
         bytes.push(...this.writeUint16(ppq));
@@ -220,64 +222,70 @@ class MidiExporter {
      * Construit le chunk track MIDI (MTrk)
      * @param {Object} scoreData - Données de partition
      * @param {Array} events - Événements MIDI générés
+     * @param {number} program - Numéro de programme MIDI (0-127)
+     * @param {number} channel - Canal MIDI (0-15)
+     * @param {string} trackName - Nom de la piste (optionnel)
      * @returns {Array<number>} Bytes du track chunk
      */
-    buildTrackChunk(scoreData, events, program = 0) {
+    buildTrackChunk(scoreData, events, program = 0, channel = 0, trackName = null) {
         const trackData = [];
         let lastTick = 0;
 
         // Événement meta : Track Name
-        if (scoreData.title) {
+        const name = trackName || scoreData.title;
+        if (name) {
             trackData.push(0); // Delta time 0
             trackData.push(0xFF); // Meta event
             trackData.push(0x03); // Track name
-            const titleBytes = this.writeString(scoreData.title);
-            trackData.push(...this.writeVarLength(titleBytes.length));
-            trackData.push(...titleBytes);
+            const nameBytes = this.writeString(name);
+            trackData.push(...this.writeVarLength(nameBytes.length));
+            trackData.push(...nameBytes);
         }
 
-        // Événement meta : Set Tempo (microsecondes par quarter note)
-        if (!scoreData.tempo || scoreData.tempo <= 0) {
-            throw new Error(`Invalid tempo: ${scoreData.tempo}. Must be a positive number.`);
-        }
-        const microsecondsPerQuarter = Math.round(60000000 / scoreData.tempo);
-        trackData.push(0); // Delta time 0
-        trackData.push(0xFF); // Meta event
-        trackData.push(0x51); // Set tempo
-        trackData.push(0x03); // Taille (toujours 3 bytes)
-        trackData.push((microsecondsPerQuarter >> 16) & 0xFF);
-        trackData.push((microsecondsPerQuarter >> 8) & 0xFF);
-        trackData.push(microsecondsPerQuarter & 0xFF);
+        // Événement meta : Set Tempo (uniquement sur la première piste)
+        if (channel === 0) {
+            if (!scoreData.tempo || scoreData.tempo <= 0) {
+                throw new Error(`Invalid tempo: ${scoreData.tempo}. Must be a positive number.`);
+            }
+            const microsecondsPerQuarter = Math.round(60000000 / scoreData.tempo);
+            trackData.push(0); // Delta time 0
+            trackData.push(0xFF); // Meta event
+            trackData.push(0x51); // Set tempo
+            trackData.push(0x03); // Taille (toujours 3 bytes)
+            trackData.push((microsecondsPerQuarter >> 16) & 0xFF);
+            trackData.push((microsecondsPerQuarter >> 8) & 0xFF);
+            trackData.push(microsecondsPerQuarter & 0xFF);
 
-        // Événement meta : Time Signature
-        if (!scoreData.timeSignature) {
-            throw new Error('Missing timeSignature in scoreData');
+            // Événement meta : Time Signature (uniquement sur la première piste)
+            if (!scoreData.timeSignature) {
+                throw new Error('Missing timeSignature in scoreData');
+            }
+            trackData.push(0); // Delta time 0
+            trackData.push(0xFF); // Meta event
+            trackData.push(0x58); // Time signature
+            trackData.push(0x04); // Taille (toujours 4 bytes)
+            trackData.push(scoreData.timeSignature.numerator);
+            trackData.push(Math.log2(scoreData.timeSignature.denominator));
+            trackData.push(24); // MIDI clocks per metronome click
+            trackData.push(8); // 32nds per quarter note
         }
-        trackData.push(0); // Delta time 0
-        trackData.push(0xFF); // Meta event
-        trackData.push(0x58); // Time signature
-        trackData.push(0x04); // Taille (toujours 4 bytes)
-        trackData.push(scoreData.timeSignature.numerator);
-        trackData.push(Math.log2(scoreData.timeSignature.denominator));
-        trackData.push(24); // MIDI clocks per metronome click
-        trackData.push(8); // 32nds per quarter note
 
         // Événement MIDI : Program Change (0xC0)
         trackData.push(0); // Delta time 0
-        trackData.push(0xC0 | 0); // Program Change sur canal 0
+        trackData.push(0xC0 | channel); // Program Change sur le canal spécifié
         trackData.push(program); // Numéro de programme MIDI (0-127)
 
-        // Événements MIDI (note on/off)
+        // Événements MIDI (note on/off) avec le canal spécifié
         for (const event of events) {
             const deltaTime = event.tick - lastTick;
             trackData.push(...this.writeVarLength(deltaTime));
 
             if (event.type === 'note_on') {
-                trackData.push(0x90 | event.channel);
+                trackData.push(0x90 | channel);
                 trackData.push(event.note);
                 trackData.push(event.velocity);
             } else if (event.type === 'note_off') {
-                trackData.push(0x80 | event.channel);
+                trackData.push(0x80 | channel);
                 trackData.push(event.note);
                 trackData.push(event.velocity);
             }
@@ -301,8 +309,9 @@ class MidiExporter {
     }
 
     /**
-     * Génère un Blob MIDI en mémoire (sans téléchargement)
+     * Génère un Blob MIDI en mémoire (sans téléchargement) - Format 0 single track
      * @param {Object} scoreData - Données de partition parsées
+     * @param {number} program - Numéro de programme MIDI (0-127)
      * @returns {Blob} Blob MIDI de type 'audio/midi'
      */
     generateMidiFile(scoreData, program = 0) {
@@ -310,8 +319,8 @@ class MidiExporter {
 
         const events = this.generateMidiEvents(scoreData);
 
-        const headerBytes = this.buildHeaderChunk(ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events, program);
+        const headerBytes = this.buildHeaderChunk(0, 1, ppq);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program, 0, null);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
 
@@ -319,19 +328,75 @@ class MidiExporter {
     }
 
     /**
-     * Exporte la partition en fichier MIDI et déclenche le téléchargement
+     * Exporte la partition en fichier MIDI et déclenche le téléchargement - Format 0 single track
      * @param {Object} scoreData - Données de partition parsées
      * @param {string} filename - Nom du fichier (sans extension)
+     * @param {number} program - Numéro de programme MIDI (0-127)
      */
     export(scoreData, filename, program = 0) {
         const ppq = 480;
 
         const events = this.generateMidiEvents(scoreData);
 
-        const headerBytes = this.buildHeaderChunk(ppq);
-        const trackBytes = this.buildTrackChunk(scoreData, events, program);
+        const headerBytes = this.buildHeaderChunk(0, 1, ppq);
+        const trackBytes = this.buildTrackChunk(scoreData, events, program, 0, null);
 
         const midiBytes = new Uint8Array([...headerBytes, ...trackBytes]);
+
+        const blob = new Blob([midiBytes], { type: 'audio/midi' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.mid`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Exporte la partition en fichier MIDI multi-pistes (Format 1)
+     * Chaque instrument sélectionné génère une piste avec les mêmes notes
+     * @param {Object} scoreData - Données de partition parsées
+     * @param {string} filename - Nom du fichier (sans extension)
+     * @param {Array<Object>} instruments - Tableau d'objets {name, program, emoji}
+     */
+    exportMultiTrack(scoreData, filename, instruments) {
+        if (!instruments || instruments.length === 0) {
+            throw new Error('Au moins un instrument doit être sélectionné');
+        }
+
+        if (instruments.length > 16) {
+            throw new Error('Maximum 16 instruments (limitation MIDI : 16 canaux)');
+        }
+
+        const ppq = 480;
+
+        const events = this.generateMidiEvents(scoreData);
+
+        const headerBytes = this.buildHeaderChunk(1, instruments.length, ppq);
+
+        const allTrackBytes = [];
+
+        for (let i = 0; i < instruments.length; i++) {
+            const instrument = instruments[i];
+            const channel = i;
+            const trackName = `${instrument.name} - ${scoreData.title || 'Partition'}`;
+
+            const trackBytes = this.buildTrackChunk(
+                scoreData,
+                events,
+                instrument.program,
+                channel,
+                trackName
+            );
+
+            allTrackBytes.push(...trackBytes);
+        }
+
+        const midiBytes = new Uint8Array([...headerBytes, ...allTrackBytes]);
 
         const blob = new Blob([midiBytes], { type: 'audio/midi' });
         const url = URL.createObjectURL(blob);
