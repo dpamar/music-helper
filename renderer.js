@@ -333,7 +333,7 @@ class Renderer {
      * Affiche une liaison entre deux notes
      * @param {CanvasRenderingContext2D} ctx - Contexte
      * @param {firstNoteX} number - coordonnée X de la note de départ
-     * @param {lastNoteX} number - coordonnée X de la node d'arrivée
+     * @param {lastNoteX} number - coordonnée X de la note d'arrivée
      * @param {noteY} number - coordonnée Y des deux notes
      */
     drawLink(ctx, firstNoteX, lastNoteX, noteY) {
@@ -365,7 +365,7 @@ class Renderer {
         const basePosition = this.notePositions[note.note][clef];
         const position = basePosition + (note.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
-        const duration = durationModification || node.duration;
+        const duration = durationModification || note.duration;
 
         // Dessine les lignes supplémentaires si la note est hors portée 
         this.drawLedgerLines(ctx, x, position, staffY);
@@ -464,22 +464,42 @@ class Renderer {
      * @returns {number} - Nouvelle position X
      */
     drawRest(ctx, rest, x, staffY = null) {
-        const y = (staffY || this.config.marginTop) + (2 * this.config.staffLineSpacing);
+        const y = (staffY || this.config.marginTop) + (this.config.staffLineSpacing);
 
         ctx.font = 'bold 30px serif';
         ctx.fillStyle = '#000';
 
         // Symbole de silence selon la durée
-        if (rest.duration >= 4) {
-            ctx.fillText('𝄻', x+5, y+7); // Pause (silence de ronde)
-        } else if (rest.duration >= 2) {
-            ctx.fillText('𝄼', x+5, y+2); // Demi-pause
+        if (rest.duration >= 2) {
+			const originY = rest.duration >= 4 ? y : y +7;
+			ctx.moveTo(x+5, originY);
+			ctx.lineTo(x+20, originY);
+			ctx.lineTo(x+20, originY+5);
+			ctx.lineTo(x+5, originY+5);
+			ctx.lineTo(x+5, originY);
+            ctx.fill(); // Pause et demi-pause
         } else if (rest.duration >= 1) {
-            ctx.fillText('𝄽', x+5, y+10); // Soupir
+            ctx.fillText('𝄽', x+5, y+20); // Soupir
         } else if (rest.duration >= 0.5) {
-            ctx.fillText('𝄾', x+5, y+10); // Demi-soupir
+			ctx.beginPath();
+            ctx.arc(x + 5, y+3, 3, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.moveTo(x+8,y+3);
+			ctx.lineTo(x+10,y);
+			ctx.lineTo(x+5,y+15);
+			ctx.stroke(); // Demi-soupir
         } else {
-            ctx.fillText('𝄿', x+5, y); // Quart de soupir
+			ctx.beginPath();
+            ctx.arc(x + 5, y+3, 2, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.arc(x + 8, y-5, 2, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.moveTo(x+8,y+3);
+			ctx.lineTo(x+10,y);
+			ctx.stroke();
+			ctx.moveTo(x+12,y-8);
+			ctx.lineTo(x+5,y+15);
+			ctx.stroke(); // Quart de soupir
         }
 		x += this.config.noteWidth;
 
