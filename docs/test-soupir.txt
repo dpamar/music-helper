@@ -1,0 +1,5 @@
+Test soupir
+120
+4/4
+sol
+S1 S1 S1 S1

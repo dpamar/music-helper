@@ -228,7 +228,7 @@ getYPosition(position, staffY = null) {
 - Dièse : `♯` (U+266F)
 - Bémol : `♭` (U+266D)
 - Bécarre : `♮` (U+266E)
-- Silences : `𝄻 𝄼 𝄽 𝄾 𝄿` (U+1D13B-1D13F)
+- Silences : tous dessinés géométriquement (Canvas path API)
 
 ### `app.js` - Orchestration
 
