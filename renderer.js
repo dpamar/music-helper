@@ -283,12 +283,13 @@ class Renderer {
 
                 // Dessine la nouvelle portée
                 this.drawStaff(ctx, clef, currentStaffY);
-                remainingUntilMeasureBar = beatsPerMesure; // Reset du compteur de mesures
+                //remainingUntilMeasureBar = beatsPerMesure; // Reset du compteur de mesures
             }
 
             if (item.type === 'rest') {
                 // Dessine un silence
                 x = this.drawRest(ctx, item, x, currentStaffY);
+				remainingUntilMeasureBar -= item.duration;
             } else {
                 let firstNoteX = null, lastNoteX = null;
                 let noteY = null;
@@ -306,9 +307,8 @@ class Renderer {
                     remainingItemDuration -= remainingUntilMeasureBar;
                     remainingUntilMeasureBar = beatsPerMesure;
 
-                    this.drawBarline(ctx, x + this.config.noteWidth - 10, currentStaffY, false);
-                    x += 10; // Espace supplémentaire après la barre
-                    x += this.config.noteWidth; // Espace entre les notes
+                    this.drawBarline(ctx, x, currentStaffY, false);
+                    x += this.config.noteWidth>>1; // Espace supplémentaire après la barre
                 }
                 if (remainingItemDuration > 0) {
                     firstNoteX = firstNoteX || x;
@@ -316,7 +316,6 @@ class Renderer {
                     let notePosition = this[drawer](ctx, item, x, clef, currentStaffY, remainingItemDuration);
                     x = notePosition.x;
                     noteY = notePosition.y;
-                    x += this.config.noteWidth; // Espace entre les notes
                     remainingUntilMeasureBar -= remainingItemDuration;
                 }
                 // Arc de liaison
@@ -392,7 +391,7 @@ class Renderer {
             ctx.fill();
         }
 
-        return {'x': x, 'y': y};
+        return {'x': x + this.config.noteWidth, 'y': y};
     }
 
     /**
@@ -453,7 +452,7 @@ class Renderer {
             ctx.fill();
         }
 
-        return {'x': x, 'y': y};
+        return {'x': x + this.config.noteWidth, 'y': y};
     }
 
     /**
@@ -472,17 +471,17 @@ class Renderer {
 
         // Symbole de silence selon la durée
         if (rest.duration >= 4) {
-            ctx.fillText('𝄻', x, y+7); // Pause (silence de ronde)
+            ctx.fillText('𝄻', x+5, y+7); // Pause (silence de ronde)
         } else if (rest.duration >= 2) {
-            ctx.fillText('𝄼', x, y+2); // Demi-pause
+            ctx.fillText('𝄼', x+5, y+2); // Demi-pause
         } else if (rest.duration >= 1) {
-            ctx.fillText('𝄽', x, y+10); // Soupir
+            ctx.fillText('𝄽', x+5, y+10); // Soupir
         } else if (rest.duration >= 0.5) {
-            ctx.fillText('𝄾', x, y+10); // Demi-soupir
+            ctx.fillText('𝄾', x+5, y+10); // Demi-soupir
         } else {
-            ctx.fillText('𝄿', x, y); // Quart de soupir
+            ctx.fillText('𝄿', x+5, y); // Quart de soupir
         }
-		x += 25;
+		x += this.config.noteWidth;
 
         return x;
     }
