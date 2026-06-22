@@ -497,7 +497,17 @@ class Renderer {
 			ctx.lineTo(x+5,y+15)
 			ctx.stroke()// Demi-soupir
         } else {
-            ctx.fillText('𝄿', x+5, y); // Quart de soupir
+			ctx.beginPath();
+            ctx.arc(x + 5, y+3, 2, 0, Math.PI * 2);
+			ctx.fill()
+			ctx.arc(x + 8, y-5, 2, 0, Math.PI * 2);
+			ctx.fill()
+			ctx.moveTo(x+8,y+3)
+			ctx.lineTo(x+10,y)
+			ctx.stroke()
+			ctx.moveTo(x+12,y-8)
+			ctx.lineTo(x+5,y+15)
+			ctx.stroke() // Quart de soupir
         }
 		x += this.config.noteWidth;
 
