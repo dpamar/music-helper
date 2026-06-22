@@ -479,23 +479,25 @@ class Renderer {
 			ctx.lineTo(x+5, originY);
             ctx.fill(); // Pause et demi-pause
         } else if (rest.duration >= 1) {
-			// Soupir (quarter rest) — zigzag with curved bottom
+			// Soupir (quarter rest) — zigzag with curved tail
 			ctx.save();
-			ctx.lineWidth = 2.5;
 			ctx.strokeStyle = '#000';
 			ctx.fillStyle = '#000';
+			ctx.lineCap = 'round';
+			ctx.lineJoin = 'round';
+			ctx.lineWidth = 2.5;
 
-			// Upper zigzag stroke
+			// Zigzag body
 			ctx.beginPath();
-			ctx.moveTo(x + 12, y);
-			ctx.lineTo(x + 6, y + 7);
-			ctx.lineTo(x + 12, y + 10);
-			ctx.lineTo(x + 6, y + 17);
+			ctx.moveTo(x + 11, y + 1);
+			ctx.lineTo(x + 5, y + 8);
+			ctx.lineTo(x + 11, y + 11);
+			ctx.lineTo(x + 5, y + 18);
 			ctx.stroke();
 
-			// Curved tail at bottom
+			// Curved tail
 			ctx.beginPath();
-			ctx.arc(x + 9, y + 19, 3, Math.PI * 0.8, Math.PI * 2.2);
+			ctx.arc(x + 8, y + 20, 3, Math.PI * 0.7, Math.PI * 2.3);
 			ctx.stroke();
 
 			ctx.restore();
