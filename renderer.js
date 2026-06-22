@@ -472,16 +472,17 @@ class Renderer {
 
         // Symbole de silence selon la durée
         if (rest.duration >= 4) {
-            ctx.fillText('𝄻', x, y); // Pause (silence de ronde)
+            ctx.fillText('𝄻', x, y+7); // Pause (silence de ronde)
         } else if (rest.duration >= 2) {
-            ctx.fillText('𝄼', x, y); // Demi-pause
+            ctx.fillText('𝄼', x, y+2); // Demi-pause
         } else if (rest.duration >= 1) {
-            ctx.fillText('𝄽', x, y); // Soupir
+            ctx.fillText('𝄽', x, y+10); // Soupir
         } else if (rest.duration >= 0.5) {
-            ctx.fillText('𝄾', x, y); // Demi-soupir
+            ctx.fillText('𝄾', x, y+10); // Demi-soupir
         } else {
             ctx.fillText('𝄿', x, y); // Quart de soupir
         }
+		x += 25;
 
         return x;
     }
