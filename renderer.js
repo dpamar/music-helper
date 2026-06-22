@@ -333,7 +333,7 @@ class Renderer {
      * Affiche une liaison entre deux notes
      * @param {CanvasRenderingContext2D} ctx - Contexte
      * @param {firstNoteX} number - coordonnée X de la note de départ
-     * @param {lastNoteX} number - coordonnée X de la node d'arrivée
+     * @param {lastNoteX} number - coordonnée X de la note d'arrivée
      * @param {noteY} number - coordonnée Y des deux notes
      */
     drawLink(ctx, firstNoteX, lastNoteX, noteY) {
@@ -365,7 +365,7 @@ class Renderer {
         const basePosition = this.notePositions[note.note][clef];
         const position = basePosition + (note.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
-        const duration = durationModification || node.duration;
+        const duration = durationModification || note.duration;
 
         // Dessine les lignes supplémentaires si la note est hors portée 
         this.drawLedgerLines(ctx, x, position, staffY);
@@ -464,16 +464,26 @@ class Renderer {
      * @returns {number} - Nouvelle position X
      */
     drawRest(ctx, rest, x, staffY = null) {
-        const y = (staffY || this.config.marginTop) + (2 * this.config.staffLineSpacing);
+        const y = (staffY || this.config.marginTop) + (this.config.staffLineSpacing);
 
         ctx.font = 'bold 30px serif';
         ctx.fillStyle = '#000';
 
         // Symbole de silence selon la durée
         if (rest.duration >= 4) {
-            ctx.fillText('𝄻', x+5, y+7); // Pause (silence de ronde)
+			ctx.moveTo(x+5,y)
+			ctx.lineTo(x+20,y)
+			ctx.lineTo(x+20,y+5)
+			ctx.lineTo(x+5,y+5)
+			ctx.lineTo(x+5,y)
+            ctx.fill(); // Pause
         } else if (rest.duration >= 2) {
-            ctx.fillText('𝄼', x+5, y+2); // Demi-pause
+            ctx.moveTo(x+5,y+7)
+			ctx.lineTo(x+20,y+7)
+			ctx.lineTo(x+20,y+12)
+			ctx.lineTo(x+5,y+12)
+			ctx.lineTo(x+5,y+7)
+            ctx.fill();; // Demi-pause
         } else if (rest.duration >= 1) {
             ctx.fillText('𝄽', x+5, y+10); // Soupir
         } else if (rest.duration >= 0.5) {
