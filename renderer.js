@@ -470,20 +470,14 @@ class Renderer {
         ctx.fillStyle = '#000';
 
         // Symbole de silence selon la durée
-        if (rest.duration >= 4) {
-			ctx.moveTo(x+5,y)
-			ctx.lineTo(x+20,y)
-			ctx.lineTo(x+20,y+5)
-			ctx.lineTo(x+5,y+5)
-			ctx.lineTo(x+5,y)
-            ctx.fill(); // Pause
-        } else if (rest.duration >= 2) {
-            ctx.moveTo(x+5,y+7)
-			ctx.lineTo(x+20,y+7)
-			ctx.lineTo(x+20,y+12)
-			ctx.lineTo(x+5,y+12)
-			ctx.lineTo(x+5,y+7)
-            ctx.fill();; // Demi-pause
+        if (rest.duration >= 2) {
+			const originY = rest.duration >= 4 ? y : y +7;
+			ctx.moveTo(x+5, originY);
+			ctx.lineTo(x+20, originY);
+			ctx.lineTo(x+20, originY+5);
+			ctx.lineTo(x+5, originY+5);
+			ctx.lineTo(x+5, originY);
+            ctx.fill(); // Pause et demi-pause
         } else if (rest.duration >= 1) {
             ctx.fillText('𝄽', x+5, y+20); // Soupir
         } else if (rest.duration >= 0.5) {
