@@ -101,7 +101,7 @@ class Renderer {
 
         // Dessine les notes
         currentX += 20; // Petit espace après le chiffrage
-        this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef);
+        this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, scoreData.signaturesMap);
     }
 
     /**
@@ -265,7 +265,7 @@ class Renderer {
      * @param {number} startX - Position X de départ
      * @param {string} clef - Clef
      */
-    drawNotes(ctx, notes, timeSignature, startX, clef) {
+    drawNotes(ctx, notes, timeSignature, startX, clef, signatures) {
         let x = startX;
         let currentStaffY = this.config.marginTop; // Position Y de la portée actuelle
         let staffCount = 0; // Nombre de portées dessinées
@@ -301,7 +301,7 @@ class Renderer {
                 while (remainingItemDuration >= remainingUntilMeasureBar) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
-                    let notePosition = this[drawer](ctx, item, x, clef, currentStaffY, remainingUntilMeasureBar);
+                    let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingUntilMeasureBar);
                     x = notePosition.x;
                     noteY = notePosition.y;
                     remainingItemDuration -= remainingUntilMeasureBar;
@@ -313,7 +313,7 @@ class Renderer {
                 if (remainingItemDuration > 0) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
-                    let notePosition = this[drawer](ctx, item, x, clef, currentStaffY, remainingItemDuration);
+                    let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingItemDuration);
                     x = notePosition.x;
                     noteY = notePosition.y;
                     remainingUntilMeasureBar -= remainingItemDuration;
@@ -360,7 +360,7 @@ class Renderer {
      * @param {number} durationModification - Durée de la note (si différente de ce qui est dans l'objet note)
      * @returns {number} - Nouvelle position X
      */
-    drawNote(ctx, note, x, clef, staffY = null, durationModification = null) {
+    drawNote(ctx, note, x, clef, signatures, staffY = null, durationModification = null) {
         // Calcule la position Y de la note sur la portée
         const basePosition = this.notePositions[note.note][clef];
         const position = basePosition + (note.octave * 7); // Décalage d'octave
@@ -374,9 +374,7 @@ class Renderer {
         this.drawNoteHead(ctx, x, y, duration);
 
         // Dessine l'altération (si présente)
-        if (note.alteration) {
-            this.drawAccidental(ctx, note.alteration, x - 15, y);
-        }
+		this.handleAlteration(ctx, x, y, note.alteration, signatures[note.note]);
 
         // Dessine la queue (si pas ronde)
         if (duration < 4) {
@@ -394,6 +392,20 @@ class Renderer {
         return {'x': x + this.config.noteWidth, 'y': y};
     }
 
+	handleAlteration(ctx, x, y, initialAlteration, defaultAlteration) {
+		var alterationToDraw = initialAlteration;
+		if (defaultAlteration) {
+			if (initialAlteration == defaultAlteration) {
+				alterationToDraw = '';
+			} else if (initialAlteration == '') {
+				alterationToDraw = 'natural';
+			}
+		}
+        if (alterationToDraw) {
+            this.drawAccidental(ctx, alterationToDraw, x - 15, y);
+        }
+	}
+
     /**
      * Dessine un accord (plusieurs notes empilées)
      * @param {CanvasRenderingContext2D} ctx - Contexte
@@ -404,7 +416,7 @@ class Renderer {
      * @param {number} durationModification - Durée de la note (si différente de ce qui est dans l'objet note)
      * @returns {number} - Nouvelle position X
      */
-    drawChord(ctx, chord, x, clef, staffY = null, durationModification = null) {
+    drawChord(ctx, chord, x, clef, signatures, staffY = null, durationModification = null) {
         const duration = durationModification || chord.duration;
 
         // Dessine chaque note de l'accord à la même position X
@@ -430,9 +442,7 @@ class Renderer {
 
 
             // Altération
-            if (note.alteration) {
-                this.drawAccidental(ctx, note.alteration, x - 15, y);
-            }
+			this.handleAlteration(ctx, x, y, note.alteration, signatures[note.note]);
         }
 
         const basePosition = this.notePositions[firstNote.note][clef];
