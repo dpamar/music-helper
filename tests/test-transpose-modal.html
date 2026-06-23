@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Transpose Modal</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Modale de Transposition</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.src = '../index.html';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        iframe.onload = function() {
+            const doc = iframe.contentDocument;
+            const win = iframe.contentWindow;
+
+            // Task 1: Modal HTML exists
+            const modal = doc.getElementById('transpose-modal');
+            assert(modal !== null, 'La modale transpose-modal existe dans le DOM');
+            assert(modal && modal.classList.contains('modal-overlay'), 'La modale a la classe modal-overlay');
+            assert(modal && modal.style.display === 'none', 'La modale est cachée par défaut');
+
+            const modalContent = modal ? modal.querySelector('.transpose-modal') : null;
+            assert(modalContent !== null, 'Le contenu .transpose-modal existe');
+
+            const inputSemitones = doc.getElementById('transpose-semitones');
+            assert(inputSemitones !== null, 'Le champ transpose-semitones existe');
+            assert(inputSemitones && inputSemitones.type === 'number', 'Le champ est de type number');
+            assert(inputSemitones && inputSemitones.min === '-12', 'Min est -12');
+            assert(inputSemitones && inputSemitones.max === '12', 'Max est 12');
+            assert(inputSemitones && inputSemitones.value === '0', 'Valeur par défaut est 0');
+
+            const btnMinus = doc.getElementById('btn-transpose-minus');
+            const btnPlus = doc.getElementById('btn-transpose-plus');
+            assert(btnMinus !== null, 'Le bouton − existe');
+            assert(btnPlus !== null, 'Le bouton + existe');
+
+            const btnApply = doc.getElementById('btn-apply-transpose');
+            const btnCancel = doc.getElementById('btn-cancel-transpose');
+            assert(btnApply !== null, 'Le bouton Appliquer existe');
+            assert(btnCancel !== null, 'Le bouton Annuler existe');
+
+            // Task 2: Advanced button exists
+            const btnAdvanced = doc.getElementById('btn-advanced');
+            assert(btnAdvanced !== null, 'Le bouton btn-advanced existe');
+            assert(btnAdvanced && btnAdvanced.title === 'Options avancées', 'Le bouton a le title Options avancées');
+
+            const primaryActions = doc.querySelector('.primary-actions');
+            assert(primaryActions !== null, 'Le conteneur .primary-actions existe');
+
+            // Task 4: Modal open/close functionality
+            assert(typeof win.showTransposeModal === 'function', 'showTransposeModal() est définie');
+            assert(typeof win.closeTransposeModal === 'function', 'closeTransposeModal() est définie');
+
+            // Test open
+            if (btnAdvanced) btnAdvanced.click();
+            assert(modal && modal.style.display === 'flex', 'Cliquer ⚙️ ouvre la modale');
+
+            // Test close with cancel
+            if (btnCancel) btnCancel.click();
+            assert(modal && modal.style.display === 'none', 'Annuler ferme la modale');
+
+            // Test +/- buttons
+            if (btnAdvanced) btnAdvanced.click();
+            if (btnPlus) btnPlus.click();
+            if (btnPlus) btnPlus.click();
+            if (btnPlus) btnPlus.click();
+            assert(inputSemitones && inputSemitones.value === '3', 'Cliquer + 3 fois → valeur = 3');
+
+            if (btnMinus) btnMinus.click();
+            if (btnMinus) btnMinus.click();
+            if (btnMinus) btnMinus.click();
+            if (btnMinus) btnMinus.click();
+            if (btnMinus) btnMinus.click();
+            assert(inputSemitones && inputSemitones.value === '-2', 'Cliquer − 5 fois depuis 3 → valeur = -2');
+
+            if (btnCancel) btnCancel.click();
+
+            // Task 5: handleApplyTranspose exists and works
+            assert(typeof win.handleApplyTranspose === 'function', 'handleApplyTranspose() est définie');
+
+            // Test transposition: generate without transpose first
+            const textarea = doc.getElementById('partition-input');
+            textarea.value = 'Test\n120\n4/4\nsol\nDo Re Mi';
+            win.handleRender();
+            const scoreNoTranspose = win.currentScoreData;
+            const firstNoteNoTranspose = scoreNoTranspose && scoreNoTranspose.notes ? scoreNoTranspose.notes[0] : null;
+            assert(
+                firstNoteNoTranspose && firstNoteNoTranspose.note === 'C' && firstNoteNoTranspose.alteration === '',
+                'Sans transposition: première note = C (Do)'
+            );
+
+            // Test transposition +2
+            if (btnAdvanced) btnAdvanced.click();
+            inputSemitones.value = '2';
+            if (btnApply) btnApply.click();
+            const scoreTransposed = win.currentScoreData;
+            const firstNoteTransposed = scoreTransposed && scoreTransposed.notes ? scoreTransposed.notes[0] : null;
+            assert(
+                firstNoteTransposed && firstNoteTransposed.note === 'D' && firstNoteTransposed.alteration === '',
+                'Transposition +2: première note = D (Ré)'
+            );
+
+            // Task 6: Validation limits
+            if (btnAdvanced) btnAdvanced.click();
+            inputSemitones.value = '20';
+            inputSemitones.dispatchEvent(new Event('input'));
+            assert(inputSemitones.value === '12', 'Saisie 20 → ramenée à 12');
+
+            inputSemitones.value = '-50';
+            inputSemitones.dispatchEvent(new Event('input'));
+            assert(inputSemitones.value === '-12', 'Saisie -50 → ramenée à -12');
+
+            inputSemitones.value = 'abc';
+            inputSemitones.dispatchEvent(new Event('input'));
+            assert(inputSemitones.value === '0', 'Saisie abc → ramenée à 0');
+
+            if (btnCancel) btnCancel.click();
+
+            // Task 7: Confirmation message
+            if (btnAdvanced) btnAdvanced.click();
+            inputSemitones.value = '3';
+            if (btnApply) btnApply.click();
+            const errorDiv = doc.getElementById('error-message');
+            assert(
+                errorDiv && errorDiv.style.display === 'block' && errorDiv.textContent.includes('+3'),
+                'Message de confirmation contient +3'
+            );
+            assert(
+                errorDiv && errorDiv.style.background === 'rgb(212, 237, 218)',
+                'Le message est vert (fond #d4edda)'
+            );
+
+            displayResults();
+        };
+    </script>
+</body>
+</html>
