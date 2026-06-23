@@ -386,3 +386,93 @@ button {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================================
+   OPTIONS AVANCÉES - TRANSPOSITION
+   ============================================================================ */
+
+.primary-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-icon {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    background: #f0f4ff;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-icon:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.transpose-modal {
+    max-width: 400px;
+}
+
+.transpose-controls {
+    margin: 20px 0;
+}
+
+.transpose-controls label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #333;
+}
+
+.transpose-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.transpose-adjust-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.transpose-adjust-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+#transpose-semitones {
+    width: 80px;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+#transpose-semitones:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.transpose-hint {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #666;
+    text-align: center;
+}
