@@ -51,8 +51,9 @@ class Parser {
         const { clef, keySignature } = this.parseClefAndKey(lines[3]);
 
         // Parse les notes (toutes les lignes après la ligne 4)
+		const signaturesMap = this.getSignaturesMap(keySignature);
         const noteLines = lines.slice(4).filter(line => line.length > 0);
-        const notes = this.parseNotes(noteLines.join(' '));
+        const notes = this.parseNotes(noteLines.join(' '), signaturesMap);
 
         return {
             title,
@@ -60,20 +61,27 @@ class Parser {
             timeSignature,
             clef,
             keySignature,
-            notes
+            notes,
+			signaturesMap
         };
     }
 	
+	getSignaturesMap(keySignature) {
+		const signaturesMap = [];
+		keySignature.map(x=>signaturesMap[x.note] = x.alteration);
+		return signaturesMap;
+	}
+
+		
 	transposeScore(scoreData, numberOfHalfTones) {
 		const title = scoreData.title;
 		const tempo = scoreData.tempo;
 		const timeSignature = scoreData.timeSignature;
 		const clef = scoreData.clef;
 		const keySignature = scoreData.keySignature;
-		
-		const signatures = [];
-        scoreData.keySignature.map(x=>signatures[x.note] = x.alteration)
-		const notes = this.transposeNotes(scoreData.notes, signatures, numberOfHalfTones);
+		const signaturesMap = scoreData.signaturesMap;
+
+		const notes = this.transposeNotes(scoreData.notes, signaturesMap, numberOfHalfTones);
 		
 
         return {
@@ -82,7 +90,8 @@ class Parser {
             timeSignature,
             clef,
             keySignature,
-            notes
+            notes,
+			signaturesMap
         };
 	}
 	
@@ -96,7 +105,12 @@ class Parser {
 		}
 		
 		if (note.type === 'chord') {
-			return note;
+			const newNotes = note.notes.map(note => this.transposeNote(note, signatures, numberOfHalfTones));
+			return {
+				type: note.type,
+				notes: newNotes,
+				duration: note.duration
+			}
 		}
 
 		const noteToTone = {
@@ -124,24 +138,24 @@ class Parser {
 		];
 		
 		var tone = noteToTone[note.note] + numberOfHalfTones;
-		const alteration = note.alteration || signatures[note.note] || '';
+		var alteration = note.alteration || signatures[note.note] || '';
 		if (alteration === 'sharp') {
 			tone++;
 		}
 		else if (alteration === 'flat') {
 			tone--;
 		}
-		
+
 		var octave = note.octave;
-		
-		octave += ~~(tone/12);
+        octave += ~~(tone/12);
 		tone %= 12;
 		if (tone < 0) {
 			tone += 12;
 			octave--;
 		}
-		const newNote = toneToNote[tone];
-		
+
+		var newNote = toneToNote[tone];
+
 		return {
 			alteration: newNote[1],
 			type: note.type,
@@ -229,7 +243,7 @@ class Parser {
      * @param {string} notesStr - Chaîne contenant toutes les notes
      * @returns {array} - Tableau d'objets représentant les notes/accords/silences
      */
-    parseNotes(notesStr) {
+    parseNotes(notesStr, signatures) {
         const tokens = notesStr.split(/\s+/);
         const notes = [];
 
@@ -242,7 +256,7 @@ class Parser {
                 notes.push(this.parseRest(token));
             } else {
                 // C'est une note ou un accord
-                notes.push(this.parseNoteOrChord(token));
+                notes.push(this.parseNoteOrChord(token, signatures));
             }
         }
 
@@ -270,7 +284,7 @@ class Parser {
      * @param {string} noteStr - Chaîne représentant la note ou l'accord
      * @returns {object} - Objet note ou accord
      */
-    parseNoteOrChord(noteStr) {
+    parseNoteOrChord(noteStr, signatures) {
         // Détecte si c'est un accord (plusieurs notes collées)
         // On cherche plusieurs noms de notes consécutifs
         const notePattern = /(do|ré|re|mi|fa|sol|la|si)(#|b|\*)?(--|-|\+|\+\+)?/gi;
@@ -291,13 +305,13 @@ class Parser {
 
         // Parse chaque note de l'accord
         const notesInChord = matches.map(match => {
-            const noteName = match[1].toLowerCase();
-            const alteration = match[2] || '';
+            const noteName = this.noteMapping[match[1].toLowerCase()];
+            const alteration = match[2] || signatures[noteName] || '';
             const octave = match[3] || '';
 
             return {
-                note: this.noteMapping[noteName],
-                alteration: alteration === '#' ? 'sharp' : alteration === 'b' ? 'flat' : alteration === '*' ? 'natural' : '',
+                note: noteName,
+                alteration: alteration === '#' ? 'sharp' : alteration === 'b' ? 'flat' : alteration === '*' ? 'natural' : alteration,
                 octave: this.parseOctave(octave)
             };
         });
