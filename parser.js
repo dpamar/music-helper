@@ -63,6 +63,93 @@ class Parser {
             notes
         };
     }
+	
+	transposeScore(scoreData, numberOfHalfTones) {
+		const title = scoreData.title;
+		const tempo = scoreData.tempo;
+		const timeSignature = scoreData.timeSignature;
+		const clef = scoreData.clef;
+		const keySignature = scoreData.keySignature;
+		
+		const signatures = [];
+        scoreData.keySignature.map(x=>signatures[x.note] = x.alteration)
+		const notes = this.transposeNotes(scoreData.notes, signatures, numberOfHalfTones);
+		
+
+        return {
+            title,
+            tempo,
+            timeSignature,
+            clef,
+            keySignature,
+            notes
+        };
+	}
+	
+	transposeNotes(notes, signatures, numberOfHalfTones) {
+		return notes.map(note => this.transposeNote(note, signatures, numberOfHalfTones));
+	}
+	
+	transposeNote(note, signatures, numberOfHalfTones) {
+		if (note.type === "rest") {
+		    return note;
+		}
+		
+		if (note.type === 'chord') {
+			return note;
+		}
+
+		const noteToTone = {
+            'C': 0,
+            'D': 2,
+            'E': 4,
+            'F': 5,
+            'G': 7,
+            'A': 9,
+            'B': 11
+        };
+		const toneToNote = [
+		   ['C',''],
+		   ['C','sharp'],
+		   ['D',''],
+		   ['D','sharp'],
+		   ['E',''],
+		   ['F',''],
+		   ['F','sharp'],
+		   ['G',''],
+		   ['G','sharp'],
+		   ['A',''],
+		   ['A','sharp'],
+		   ['B','']
+		];
+		
+		var tone = noteToTone[note.note] + numberOfHalfTones;
+		const alteration = note.alteration || signatures[note.note] || '';
+		if (alteration === 'sharp') {
+			tone++;
+		}
+		else if (alteration === 'flat') {
+			tone--;
+		}
+		
+		var octave = note.octave;
+		
+		octave += ~~(tone/12);
+		tone %= 12;
+		if (tone < 0) {
+			tone += 12;
+			octave--;
+		}
+		const newNote = toneToNote[tone];
+		
+		return {
+			alteration: newNote[1],
+			type: note.type,
+			duration: note.duration,
+			octave: octave,
+			note: newNote[0]
+		};
+	}
 
     /**
      * Parse le tempo (ligne 2)

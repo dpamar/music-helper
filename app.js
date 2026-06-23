@@ -126,7 +126,7 @@ function handleRender() {
             throw new Error('Veuillez saisir une partition');
         }
 
-        const scoreData = parser.parse(text);
+        const scoreData = parser.transposeScore(parser.parse(text), 1);
         console.log('✅ Partition parsée:', scoreData);
 
         // Stocke les données pour l'export
