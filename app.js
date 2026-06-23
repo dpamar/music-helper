@@ -98,9 +98,57 @@ function init() {
         }
     });
 
+    // Gestion de la modale de transposition
+    const transposeModal = document.getElementById('transpose-modal');
+    const btnAdvanced = document.getElementById('btn-advanced');
+    const btnCancelTranspose = document.getElementById('btn-cancel-transpose');
+    const btnApplyTranspose = document.getElementById('btn-apply-transpose');
+    const btnTransposeMinus = document.getElementById('btn-transpose-minus');
+    const btnTransposePlus = document.getElementById('btn-transpose-plus');
+    const inputSemitones = document.getElementById('transpose-semitones');
+
+    btnAdvanced.addEventListener('click', showTransposeModal);
+    btnCancelTranspose.addEventListener('click', closeTransposeModal);
+    btnApplyTranspose.addEventListener('click', handleApplyTranspose);
+
+    btnTransposeMinus.addEventListener('click', () => {
+        const current = parseInt(inputSemitones.value) || 0;
+        inputSemitones.value = Math.max(-12, current - 1);
+    });
+
+    btnTransposePlus.addEventListener('click', () => {
+        const current = parseInt(inputSemitones.value) || 0;
+        inputSemitones.value = Math.min(12, current + 1);
+    });
+
+    inputSemitones.addEventListener('input', () => {
+        let value = parseInt(inputSemitones.value);
+
+        if (isNaN(value)) {
+            inputSemitones.value = '0';
+            return;
+        }
+
+        if (value < -12) {
+            inputSemitones.value = '-12';
+        } else if (value > 12) {
+            inputSemitones.value = '12';
+        }
+    });
+
+    transposeModal.addEventListener('click', (e) => {
+        if (e.target === transposeModal) {
+            closeTransposeModal();
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && instrumentModal.style.display === 'flex') {
-            closeInstrumentModal();
+        if (e.key === 'Escape') {
+            if (transposeModal.style.display === 'flex') {
+                closeTransposeModal();
+            } else if (instrumentModal.style.display === 'flex') {
+                closeInstrumentModal();
+            }
         }
     });
 
@@ -126,7 +174,7 @@ function handleRender() {
             throw new Error('Veuillez saisir une partition');
         }
 
-        const scoreData = parser.transposeScore(parser.parse(text), 1);
+        const scoreData = parser.parse(text);
         console.log('✅ Partition parsée:', scoreData);
 
         // Stocke les données pour l'export
@@ -471,6 +519,90 @@ function handleValidateInstruments() {
  */
 function closeInstrumentModal() {
     const modal = document.getElementById('instrument-modal');
+    modal.style.display = 'none';
+}
+
+/**
+ * Gère l'application de la transposition et génération
+ */
+function handleApplyTranspose() {
+    const textarea = document.getElementById('partition-input');
+    const errorDiv = document.getElementById('error-message');
+    const outputDiv = document.getElementById('render-output');
+    const inputSemitones = document.getElementById('transpose-semitones');
+
+    errorDiv.style.display = 'none';
+
+    closeTransposeModal();
+
+    try {
+        const text = textarea.value.trim();
+
+        if (!text) {
+            throw new Error('Veuillez saisir une partition');
+        }
+
+        const parsedData = parser.parse(text);
+
+        const semitones = parseInt(inputSemitones.value) || 0;
+        const scoreData = semitones !== 0
+            ? parser.transposeScore(parsedData, semitones)
+            : parsedData;
+
+        console.log(`✅ Partition parsée (transposition: ${semitones} demi-tons):`, scoreData);
+
+        currentScoreData = scoreData;
+
+        renderer.render(scoreData, outputDiv);
+        console.log('✅ Partition rendue');
+
+        setExportButtonState(true);
+        setPlayButtonState(true);
+
+        if (semitones !== 0) {
+            errorDiv.textContent = `✅ Partition générée avec transposition de ${semitones > 0 ? '+' : ''}${semitones} demi-ton(s)`;
+            errorDiv.style.display = 'block';
+            errorDiv.style.background = '#d4edda';
+            errorDiv.style.color = '#155724';
+            errorDiv.style.borderColor = '#c3e6cb';
+
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+                errorDiv.style.background = '';
+                errorDiv.style.color = '';
+                errorDiv.style.borderColor = '';
+            }, 3000);
+        }
+
+    } catch (error) {
+        console.error('❌ Erreur:', error.message);
+        errorDiv.textContent = '❌ ' + error.message;
+        errorDiv.style.display = 'block';
+
+        setExportButtonState(false);
+        setPlayButtonState(false);
+
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Affiche la modale de transposition
+ */
+function showTransposeModal() {
+    const modal = document.getElementById('transpose-modal');
+    const input = document.getElementById('transpose-semitones');
+
+    input.value = '0';
+    modal.style.display = 'flex';
+    input.focus();
+}
+
+/**
+ * Ferme la modale de transposition
+ */
+function closeTransposeModal() {
+    const modal = document.getElementById('transpose-modal');
     modal.style.display = 'none';
 }
 
