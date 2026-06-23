@@ -30,7 +30,10 @@
 sol
 Do Re Mi Fa Sol La Si Do+"></textarea>
                 <div class="actions">
-                    <button id="btn-render" class="btn-primary">Générer la partition</button>
+                    <div class="primary-actions">
+                        <button id="btn-render" class="btn-primary">Générer la partition</button>
+                        <button id="btn-advanced" class="btn-icon" title="Options avancées">⚙️</button>
+                    </div>
                     <button id="btn-example" class="btn-secondary">Charger un exemple</button>
                     <button id="btn-clear" class="btn-secondary">Effacer</button>
                 </div>
@@ -75,6 +78,39 @@ Do Re Mi Fa Sol La Si Do+"></textarea>
                     ✅ Valider la sélection
                 </button>
                 <button id="btn-cancel-instrument" class="btn-secondary">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale de transposition -->
+    <div id="transpose-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content transpose-modal">
+            <h2>⚙️ Options avancées</h2>
+            <div class="transpose-controls">
+                <label for="transpose-semitones">Transposition (demi-tons) :</label>
+                <div class="transpose-input-group">
+                    <button id="btn-transpose-minus" class="transpose-adjust-btn">−</button>
+                    <input
+                        type="number"
+                        id="transpose-semitones"
+                        min="-12"
+                        max="12"
+                        value="0"
+                        step="1"
+                    />
+                    <button id="btn-transpose-plus" class="transpose-adjust-btn">+</button>
+                </div>
+                <div class="transpose-hint">
+                    De -12 (1 octave bas) à +12 (1 octave haut)
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="btn-apply-transpose" class="btn-primary">
+                    ✅ Générer avec transposition
+                </button>
+                <button id="btn-cancel-transpose" class="btn-secondary">
                     Annuler
                 </button>
             </div>
