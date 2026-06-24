@@ -35,7 +35,7 @@ class Renderer {
         };
 
         this.drawingInfo = {
-            optimizationMode: false,
+            optimizationMode: true,
             fakeMode: false,
             alterationCount: 0
         };
