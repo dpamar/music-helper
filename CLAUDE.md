@@ -549,6 +549,33 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - **Pas de nuances** : Toutes les notes au même volume
 - **Timbre fixe** : Onde sinusoïdale uniquement (pourrait être enrichi avec `triangle`, `sawtooth`, etc.)
 
+## ⚙️ Options avancées
+
+### Transposition
+
+Accessible via le bouton "⚙️" à côté de "Générer la partition".
+
+- **Plage** : -12 à +12 demi-tons
+- **Contrôles** : Boutons +/- ou saisie manuelle
+- **Application** : Toutes les notes sont transposées avant le rendu
+
+### Optimisation de l'affichage des altérations
+
+**Case à cocher** : "Optimiser l'affichage des altérations"
+- **Activée par défaut** : Oui
+- **Fonctionnement** :
+  - Teste automatiquement les 15 armures possibles (Do majeur, 7 dièses, 7 bémols)
+  - Sélectionne l'armure qui minimise le nombre d'altérations accidentelles
+  - Améliore la lisibilité de la partition
+
+**Exemple** :
+- Partition avec beaucoup de Fa# → L'optimiseur choisit automatiquement une armure avec Fa# à la clef
+- Résultat : Moins de symboles # sur la portée, partition plus claire
+
+**Désactivation** :
+- Décocher la case pour conserver l'armure originale spécifiée dans la saisie
+- Utile pour respecter une tonalité spécifique voulue par l'utilisateur
+
 ## 🐛 Bugs connus / Limitations
 
 - ✅ ~~Do et Ré médiums mal positionnés~~ → Corrigé
