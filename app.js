@@ -462,6 +462,8 @@ function handleApplyTranspose() {
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
     const inputSemitones = document.getElementById('transpose-semitones');
+    const optimizeCheckbox = document.getElementById('optimize-checkbox');
+    const optimizationEnabled = optimizeCheckbox.checked;
 
     errorDiv.style.display = 'none';
 
@@ -477,7 +479,7 @@ function handleApplyTranspose() {
         const parsedData = parser.parse(text);
 
         const semitones = parseInt(inputSemitones.value) || 0;
-        const scoreData = semitones !== 0
+        let scoreData = semitones !== 0
             ? parser.transposeScore(parsedData, semitones)
             : parsedData;
 
@@ -485,9 +487,11 @@ function handleApplyTranspose() {
 
         currentScoreData = scoreData;
 
-        renderer.setOptimizationMode(true);
-        renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
-        renderer.setOptimizationMode(false);
+        renderer.setOptimizationMode(optimizationEnabled);
+        if (optimizationEnabled) {
+            scoreData = renderer.optimizeKeySignature(scoreData);
+        }
+        renderer.render(scoreData, outputDiv);
         console.log('✅ Partition rendue');
 
         setExportButtonState(true);
