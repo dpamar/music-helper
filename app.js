@@ -146,6 +146,7 @@ function handleRender() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
+    const checkboxOptimization = document.getElementById('optimization-mode');
 
     errorDiv.style.display = 'none';
 
@@ -161,10 +162,15 @@ function handleRender() {
 
         currentScoreData = scoreData;
 
-        renderer.setOptimizationMode(true);
-        renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
+        const optimizationEnabled = checkboxOptimization && checkboxOptimization.checked;
+        const dataToRender = optimizationEnabled
+            ? renderer.optimizeKeySignature(scoreData)
+            : scoreData;
+
+        renderer.setOptimizationMode(optimizationEnabled);
+        renderer.render(dataToRender, outputDiv);
         renderer.setOptimizationMode(false);
-        console.log('✅ Partition rendue');
+        console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
 
         setExportButtonState(true);
         setPlayButtonState(true);
@@ -462,6 +468,7 @@ function handleApplyTranspose() {
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
     const inputSemitones = document.getElementById('transpose-semitones');
+    const checkboxOptimization = document.getElementById('optimization-mode');
 
     errorDiv.style.display = 'none';
 
@@ -485,10 +492,15 @@ function handleApplyTranspose() {
 
         currentScoreData = scoreData;
 
-        renderer.setOptimizationMode(true);
-        renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
+        const optimizationEnabled = checkboxOptimization && checkboxOptimization.checked;
+        const dataToRender = optimizationEnabled
+            ? renderer.optimizeKeySignature(scoreData)
+            : scoreData;
+
+        renderer.setOptimizationMode(optimizationEnabled);
+        renderer.render(dataToRender, outputDiv);
         renderer.setOptimizationMode(false);
-        console.log('✅ Partition rendue');
+        console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
 
         setExportButtonState(true);
         setPlayButtonState(true);
