@@ -13,7 +13,7 @@ class Parser {
      */
     constructor() {
         this.validNotes = ['do', 'ré', 're', 'mi', 'fa', 'sol', 'la', 'si'];
-
+		
         this.noteMapping = {
             'do': 'C',
             'ré': 'D',
@@ -24,6 +24,15 @@ class Parser {
             'la': 'A',
             'si': 'B'
         };
+		this.NoteWriting = {
+			 'C':'Do',
+             'D':'Re',
+             'E':'Mi',
+             'F':'Fa',
+             'G':'Sol',
+             'A':'La',
+             'B':'Si'
+		}
     }
 
     /**
@@ -68,16 +77,45 @@ class Parser {
         result += scoreData.tempo + "\n";
 		
 		// Ajout du chiffrage
-		result += scoreData.timeSignature + "\n";
+		result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
 		
 		// Ajout de la clef
-		result += scoreData.clef + "\n";
+		result += scoreData.clef ;
 		
-		// Ajout d'un truc utile
+		// Ajout de l'armure
 		result += scoreData.keySignature + "\n";
 		
 		// Ajout des notes
 		result += scoreData.notes + "\n"
+		
+		for (const	note of scoreData.notes){
+			if (note.octave > 0){
+				let VisualOctave = octave(+) // je ne sais pas comment faire écris octave fois plus
+			} else if (octave < 0){
+				let VisualOctave = octave(-)
+			}else{
+				let VisualOctave = ''
+			}
+			if (note.alteration == 'flat'){
+				let VisualAlteration = 'b'
+			}else if (alteration == 'sharp'){
+				let VisualAlteration = '#'
+			}else{
+				let VisualAlteration = ''
+			}
+			if (note.duration == 1){
+				let VisualDuration = ''
+			}else {
+				let VisualDuration = note.duration
+			}
+			result += {
+				type: 'note'
+				Alteration: VisualAlteration
+				duration: VisualDuration
+				note: NoteWriting[note.note]
+				octave: VisualOctave
+			}
+		}
 
         return result;
     }
