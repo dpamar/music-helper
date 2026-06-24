@@ -1,9 +1,6 @@
 /**
  * PARSER.JS
  *
- * Ce fichier parse la notation textuelle saisie par l'utilisateur
- * et la transforme en structures de données exploitables.
- *
  * Format attendu :
  * - Ligne 1 : Titre
  * - Ligne 2 : Tempo (nombre)
@@ -14,10 +11,8 @@
 
 class Parser {
     constructor() {
-        // Notes valides en notation française
         this.validNotes = ['do', 'ré', 're', 'mi', 'fa', 'sol', 'la', 'si'];
 
-        // Mapping vers notation anglo-saxonne (pour faciliter le rendu)
         this.noteMapping = {
             'do': 'C',
             'ré': 'D',
@@ -30,27 +25,19 @@ class Parser {
         };
     }
 
-    /**
-     * Parse le texte complet de la partition
-     * @param {string} text - Texte brut saisi par l'utilisateur
-     * @returns {object} - Objet contenant toutes les données parsées
-     */
     parse(text) {
-        // Sépare le texte en lignes
         const lines = text.split('\n').map(line => line.trim());
 
-        // Vérifie qu'on a au moins 5 lignes (4 méta + 1 ligne de notes minimum)
+        // 5 lines minimum: title, tempo, time signature, clef, notes
         if (lines.length < 5) {
             throw new Error('La partition doit contenir au moins 5 lignes (titre, tempo, chiffrage, clef, notes)');
         }
 
-        // Parse les métadonnées
         const title = lines[0] || 'Sans titre';
         const tempo = this.parseTempo(lines[1]);
         const timeSignature = this.parseTimeSignature(lines[2]);
         const { clef, keySignature } = this.parseClefAndKey(lines[3]);
 
-        // Parse les notes (toutes les lignes après la ligne 4)
         const noteLines = lines.slice(4).filter(line => line.length > 0);
         const notes = this.parseNotes(noteLines.join(' '), this.getSignaturesMap(keySignature));
 
@@ -63,23 +50,21 @@ class Parser {
             notes
         };
     }
-	
-	getSignaturesMap(keySignature) {
-		const signaturesMap = [];
-		keySignature.map(x=>signaturesMap[x.note] = x.alteration);
-		return signaturesMap;
-	}
 
-		
-	transposeScore(scoreData, numberOfHalfTones) {
-		const title = scoreData.title;
-		const tempo = scoreData.tempo;
-		const timeSignature = scoreData.timeSignature;
-		const clef = scoreData.clef;
-		const keySignature = scoreData.keySignature;
+    getSignaturesMap(keySignature) {
+        const signaturesMap = [];
+        keySignature.map(x => signaturesMap[x.note] = x.alteration);
+        return signaturesMap;
+    }
 
-		const notes = this.transposeNotes(scoreData.notes, this.getSignaturesMap(keySignature), numberOfHalfTones);
-		
+    transposeScore(scoreData, numberOfHalfTones) {
+        const title = scoreData.title;
+        const tempo = scoreData.tempo;
+        const timeSignature = scoreData.timeSignature;
+        const clef = scoreData.clef;
+        const keySignature = scoreData.keySignature;
+
+        const notes = this.transposeNotes(scoreData.notes, this.getSignaturesMap(keySignature), numberOfHalfTones);
 
         return {
             title,
@@ -89,27 +74,28 @@ class Parser {
             keySignature,
             notes
         };
-	}
-	
-	transposeNotes(notes, signatures, numberOfHalfTones) {
-		return notes.map(note => this.transposeNote(note, signatures, numberOfHalfTones));
-	}
-	
-	transposeNote(note, signatures, numberOfHalfTones) {
-		if (note.type === "rest") {
-		    return note;
-		}
-		
-		if (note.type === 'chord') {
-			const newNotes = note.notes.map(note => this.transposeNote(note, signatures, numberOfHalfTones));
-			return {
-				type: note.type,
-				notes: newNotes,
-				duration: note.duration
-			}
-		}
+    }
 
-		const noteToTone = {
+    transposeNotes(notes, signatures, numberOfHalfTones) {
+        return notes.map(note => this.transposeNote(note, signatures, numberOfHalfTones));
+    }
+
+    transposeNote(note, signatures, numberOfHalfTones) {
+        if (note.type === "rest") {
+            return note;
+        }
+
+        if (note.type === 'chord') {
+            const newNotes = note.notes.map(note => this.transposeNote(note, signatures, numberOfHalfTones));
+            return {
+                type: note.type,
+                notes: newNotes,
+                duration: note.duration
+            };
+        }
+
+        // Chromatic scale: maps note name to semitone offset within an octave
+        const noteToTone = {
             'C': 0,
             'D': 2,
             'E': 4,
@@ -118,54 +104,50 @@ class Parser {
             'A': 9,
             'B': 11
         };
-		const toneToNote = [
-		   ['C',''],
-		   ['C','sharp'],
-		   ['D',''],
-		   ['D','sharp'],
-		   ['E',''],
-		   ['F',''],
-		   ['F','sharp'],
-		   ['G',''],
-		   ['G','sharp'],
-		   ['A',''],
-		   ['A','sharp'],
-		   ['B','']
-		];
-		
-		var tone = noteToTone[note.note] + numberOfHalfTones;
-		var alteration = note.alteration || signatures[note.note] || '';
-		if (alteration === 'sharp') {
-			tone++;
-		}
-		else if (alteration === 'flat') {
-			tone--;
-		}
+        // Reverse mapping: semitone offset -> [noteName, alteration]
+        const toneToNote = [
+            ['C', ''],
+            ['C', 'sharp'],
+            ['D', ''],
+            ['D', 'sharp'],
+            ['E', ''],
+            ['F', ''],
+            ['F', 'sharp'],
+            ['G', ''],
+            ['G', 'sharp'],
+            ['A', ''],
+            ['A', 'sharp'],
+            ['B', '']
+        ];
 
-		var octave = note.octave;
-        octave += ~~(tone/12);
-		tone %= 12;
-		if (tone < 0) {
-			tone += 12;
-			octave--;
-		}
+        var tone = noteToTone[note.note] + numberOfHalfTones;
+        var alteration = note.alteration || signatures[note.note] || '';
+        if (alteration === 'sharp') {
+            tone++;
+        } else if (alteration === 'flat') {
+            tone--;
+        }
 
-		var newNote = toneToNote[tone];
+        // Wrap around octave boundaries: 12 semitones = 1 octave
+        var octave = note.octave;
+        octave += ~~(tone / 12);
+        tone %= 12;
+        if (tone < 0) {
+            tone += 12;
+            octave--;
+        }
 
-		return {
-			alteration: newNote[1],
-			type: note.type,
-			duration: note.duration,
-			octave: octave,
-			note: newNote[0]
-		};
-	}
+        var newNote = toneToNote[tone];
 
-    /**
-     * Parse le tempo (ligne 2)
-     * @param {string} tempoStr - Chaîne de caractères du tempo
-     * @returns {number} - Tempo en BPM
-     */
+        return {
+            alteration: newNote[1],
+            type: note.type,
+            duration: note.duration,
+            octave: octave,
+            note: newNote[0]
+        };
+    }
+
     parseTempo(tempoStr) {
         const tempo = parseInt(tempoStr);
         if (isNaN(tempo) || tempo < 20 || tempo > 300) {
@@ -174,11 +156,6 @@ class Parser {
         return tempo;
     }
 
-    /**
-     * Parse le chiffrage (ligne 3)
-     * @param {string} timeStr - Chiffrage (ex: "4/4")
-     * @returns {object} - {numerator, denominator}
-     */
     parseTimeSignature(timeStr) {
         const match = timeStr.match(/^(\d+)\/(\d+)$/);
         if (!match) {
@@ -190,14 +167,8 @@ class Parser {
         };
     }
 
-    /**
-     * Parse la clef et les altérations à la clef (ligne 4)
-     * @param {string} clefStr - Clef et altérations (ex: "sol, Fa#, Do#" ou "sol Fa# Do#")
-     * @returns {object} - {clef, keySignature}
-     */
     parseClefAndKey(clefStr) {
-        // Accepte à la fois les virgules ET les espaces comme séparateurs
-        // On split d'abord par virgule, puis chaque partie par espace
+        // Accepts both commas and spaces as separators
         const parts = clefStr.split(/[,\s]+/).map(p => p.trim()).filter(p => p.length > 0);
 
         const clef = parts[0].toLowerCase();
@@ -206,20 +177,13 @@ class Parser {
             throw new Error(`Clef invalide: "${clef}". Clefs acceptées: "sol" ou "fa".`);
         }
 
-        // Parse les altérations à la clef (si présentes)
         const keySignature = parts.slice(1).map(alt => this.parseAlteration(alt));
 
         return { clef, keySignature };
     }
 
-    /**
-     * Parse une altération (ex: "Fa#" ou "Sib")
-     * @param {string} altStr - Altération
-     * @returns {object} - {note, alteration}
-     */
     parseAlteration(altStr) {
-        // Match note exacte + altération (# ou b ou *)
-        // Important : lister explicitement les noms de notes pour que "b" ne soit pas inclus dans le nom
+        // Explicit note names prevent "b" in "Sib" from being parsed as part of the note name
         const noteMatch = altStr.match(/^(do|ré|re|mi|fa|sol|la|si)(#|b|\*)?$/i);
         if (!noteMatch) {
             throw new Error(`Altération invalide: "${altStr}". Format attendu: "Do#", "Mib", "Fa*"`);
@@ -234,11 +198,6 @@ class Parser {
         };
     }
 
-    /**
-     * Parse les notes et silences
-     * @param {string} notesStr - Chaîne contenant toutes les notes
-     * @returns {array} - Tableau d'objets représentant les notes/accords/silences
-     */
     parseNotes(notesStr, signatures) {
         const tokens = notesStr.split(/\s+/);
         const notes = [];
@@ -246,12 +205,10 @@ class Parser {
         for (const token of tokens) {
             if (token.length === 0) continue;
 
-            // Vérifie si c'est un silence (S seul ou S suivi de nombre, pas "sol" !)
-            // On teste avec une regex stricte : S suivi optionnellement de chiffres/point
+            // Strict regex: "S" optionally followed by digits/dot — avoids matching "Sol" as a rest
             if (/^s[\d.]*$/i.test(token)) {
                 notes.push(this.parseRest(token));
             } else {
-                // C'est une note ou un accord
                 notes.push(this.parseNoteOrChord(token, signatures));
             }
         }
@@ -259,13 +216,7 @@ class Parser {
         return notes;
     }
 
-    /**
-     * Parse un silence (ex: "S", "S2", "S0.5")
-     * @param {string} restStr - Chaîne représentant le silence
-     * @returns {object} - Objet silence
-     */
     parseRest(restStr) {
-        // Extrait la durée après le S
         const durationMatch = restStr.match(/^s([\d.]+)?$/i);
         const duration = durationMatch && durationMatch[1] ? parseFloat(durationMatch[1]) : 1;
 
@@ -275,14 +226,7 @@ class Parser {
         };
     }
 
-    /**
-     * Parse une note ou un accord (ex: "Do", "Mi2", "Fa#", "DoMiSol1.5")
-     * @param {string} noteStr - Chaîne représentant la note ou l'accord
-     * @returns {object} - Objet note ou accord
-     */
     parseNoteOrChord(noteStr, signatures) {
-        // Détecte si c'est un accord (plusieurs notes collées)
-        // On cherche plusieurs noms de notes consécutifs
         const notePattern = /(do|ré|re|mi|fa|sol|la|si)(#|b|\*)?(--|-|\+|\+\+)?/gi;
         const matches = [...noteStr.matchAll(notePattern)];
 
@@ -290,8 +234,7 @@ class Parser {
             throw new Error(`Token invalide: "${noteStr}"`);
         }
 
-        // Extrait la durée (à la fin du token)
-        // La durée est partagée par toutes les notes de l'accord
+        // Duration is shared across all notes in a chord, appears at the end of the token
         const remainingStr = noteStr.substring(matches[matches.length - 1].index + matches[matches.length - 1][0].length);
         const duration = remainingStr ? parseFloat(remainingStr) : 1;
 
@@ -299,7 +242,6 @@ class Parser {
             throw new Error(`Durée invalide dans "${noteStr}"`);
         }
 
-        // Parse chaque note de l'accord
         const notesInChord = matches.map(match => {
             const noteName = this.noteMapping[match[1].toLowerCase()];
             const alteration = match[2] || signatures[noteName] || '';
@@ -312,7 +254,6 @@ class Parser {
             };
         });
 
-        // Si une seule note, c'est une note simple
         if (notesInChord.length === 1) {
             return {
                 type: 'note',
@@ -320,7 +261,6 @@ class Parser {
                 duration: duration
             };
         } else {
-            // Sinon c'est un accord
             return {
                 type: 'chord',
                 notes: notesInChord,
@@ -329,16 +269,11 @@ class Parser {
         }
     }
 
-    /**
-     * Parse l'octave (ex: "--", "-", "", "+", "++")
-     * @param {string} octaveStr - Indicateur d'octave
-     * @returns {number} - Décalage d'octave (-2, -1, 0, 1, 2)
-     */
     parseOctave(octaveStr) {
         if (octaveStr === '--') return -2;
         if (octaveStr === '-') return -1;
         if (octaveStr === '+') return 1;
         if (octaveStr === '++') return 2;
-        return 0; // Octave par défaut
+        return 0;
     }
 }
