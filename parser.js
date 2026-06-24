@@ -69,7 +69,7 @@ class Parser {
     }
 
     toText(scoreData) {
-        var result = "";
+        let result = "";
         // Ajout du titre
         result += scoreData.title + "\n";
 
@@ -86,18 +86,20 @@ class Parser {
 		result += scoreData.keySignature + "\n";
 		
 		// Ajout des notes
+		const noteTexts = [];
 		for (const note of scoreData.notes){
                     const methodName = note.type + "ToText";
                     if (typeof this[methodName] !== 'function') {
                         throw new Error('Unknown note type: ' + note.type);
                     }
-                    result += this[methodName](note) + " ";
+                    noteTexts.push(this[methodName](note));
                 }
+        result += noteTexts.join(' ') + '\n';
         return result;
     }
 
     restToText(rest) {
-        var result = "S";
+        let result = "S";
         if (rest.duration !== 1) {
             result += rest.duration;
         }
@@ -105,7 +107,7 @@ class Parser {
     }
 
     chordToText(chord) {
-        var result = "";
+        let result = "";
         for (const note of chord.notes) {
             result += this.noteToText({
                 note: note.note,
@@ -121,7 +123,7 @@ class Parser {
     }
 
     noteToText(note) {
-        var result = "";
+        let result = "";
         // La note
         const noteName = this.reverseNoteMapping[note.note];
         if (!noteName) {
@@ -144,7 +146,7 @@ class Parser {
         }
 
         // La durée
-        if(note.duration != 1) {
+        if(note.duration !== 1) {
             result += note.duration;
         }
 
