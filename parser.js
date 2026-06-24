@@ -24,15 +24,15 @@ class Parser {
             'la': 'A',
             'si': 'B'
         };
-		this.NoteWriting = {
-			 'C':'Do',
+	this.reverseNoteMapping = {
+             'C':'Do',
              'D':'Re',
              'E':'Mi',
              'F':'Fa',
              'G':'Sol',
              'A':'La',
              'B':'Si'
-		}
+        };
     }
 
     /**
@@ -80,42 +80,47 @@ class Parser {
 		result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
 		
 		// Ajout de la clef
-		result += scoreData.clef ;
+		result += scoreData.clef + "\n";
 		
 		// Ajout de l'armure
 		result += scoreData.keySignature + "\n";
 		
 		// Ajout des notes
-		result += scoreData.notes + "\n"
-		
-		for (const	note of scoreData.notes){
-			if (note.octave > 0){
-				let VisualOctave = octave(+) // je ne sais pas comment faire écris octave fois plus
-			} else if (octave < 0){
-				let VisualOctave = octave(-)
-			}else{
-				let VisualOctave = ''
-			}
-			if (note.alteration == 'flat'){
-				let VisualAlteration = 'b'
-			}else if (alteration == 'sharp'){
-				let VisualAlteration = '#'
-			}else{
-				let VisualAlteration = ''
-			}
-			if (note.duration == 1){
-				let VisualDuration = ''
-			}else {
-				let VisualDuration = note.duration
-			}
-			result += {
-				type: 'note'
-				Alteration: VisualAlteration
-				duration: VisualDuration
-				note: NoteWriting[note.note]
-				octave: VisualOctave
-			}
-		}
+		for (const note of scoreData.notes){
+                    result += this[note.type + "ToText"](note) + " ";
+                }
+        return result;
+    }
+
+    restToText(rest) {
+    }
+
+    chordToText(chord) {
+    }
+
+    noteToText(note) {
+        var result = "";
+        // La note
+        result += this.reverseNoteMapping[note.note];
+
+        // L'altération
+        switch(note.alteration) {
+            case 'flat' : result += 'b'; break;
+            case 'sharp': result += '#'; break;
+            case 'natural': result += '*'; break;
+        }
+
+        // L'octave
+        if (note.octave < 0) {
+            result += '-'.repeat(-note.octave);
+        } else if (note.octave >0) {
+            result += '+'.repeat(note.octave);
+        }
+
+        // La durée
+        if(note.duration != 1) {
+            result += note.duration;
+        }
 
         return result;
     }
