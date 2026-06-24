@@ -1,10 +1,10 @@
 /**
- * RENDERER.JS
- *
- * Draws the musical score on an HTML5 canvas.
+ * Renderer - Dessine la partition musicale sur un Canvas HTML5.
  */
-
 class Renderer {
+    /**
+     * Initialise le moteur de rendu avec les configurations par defaut.
+     */
     constructor() {
         this.config = {
             staffLineSpacing: 12,
@@ -15,15 +15,6 @@ class Renderer {
             clefWidth: 60
         };
 
-        // Staff position mapping for each note name per clef.
-        //
-        // TREBLE CLEF (sol): line 1 = E (position 0)
-        // Position:  -2   -1    0    1    2    3    4    5    6    7    8    9
-        // Note:      Do   Ré   Mi   Fa  Sol   La   Si   Do+  Ré+  Mi+  Fa+  Sol+
-        //            LS   IL   L1   IL   L2   IL   L3   IL   L4   IL   L5   ...
-        //
-        // LS = ledger line, IL = interline, L1-L5 = staff lines
-        // Each octave shifts by 7 positions.
         this.notePositions = {
             'C': { 'sol': -2, 'fa': 3 },
             'D': { 'sol': -1, 'fa': 4 },
@@ -41,43 +32,13 @@ class Renderer {
         };
     }
 
-    optimizeKeySignature(scoreData) {
-        const allSignatures = [[]];
-        const sharpSignatures = 'FCGDAEB', flatSignatures = 'BEADGCF';
-        for (var i = 1; i <= 7; i++) {
-            allSignatures.push([...sharpSignatures.substr(0, i)].map(x => { return { note: x, alteration: 'sharp' }; }));
-            allSignatures.push([...flatSignatures.substr(0, i)].map(x => { return { note: x, alteration: 'flat' }; }));
-        }
-
-        this.drawingInfo.fakeMode = true;
-
-        var minAlterationCount = Infinity;
-        var bestScoreData = scoreData;
-
-        for (const signature of allSignatures) {
-            const newScoreData = {
-                title: scoreData.title,
-                tempo: scoreData.tempo,
-                timeSignature: scoreData.timeSignature,
-                clef: scoreData.clef,
-                keySignature: signature,
-                notes: scoreData.notes
-            };
-            this.render(newScoreData, null, true, true);
-            if (minAlterationCount <= this.drawingInfo.alterationCount) {
-                continue;
-            }
-            minAlterationCount = this.drawingInfo.alterationCount;
-            bestScoreData = newScoreData;
-        }
-        this.drawingInfo.fakeMode = false;
-        return bestScoreData;
-    }
-
-    setOptimizationMode(optimizationMode) {
-        this.drawingInfo.optimizationMode = optimizationMode;
-    }
-
+    /**
+     * Dessine la partition complete sur un Canvas HTML5.
+     * Cree le canvas, dessine portee, clef, armure, chiffrage, notes.
+     * @param {Object} scoreData - Objet ParseResult (resultat de Parser.parse())
+     * @param {HTMLElement} container - Element DOM ou inserer le canvas
+     * @returns {void}
+     */
     render(scoreData, container) {
         const width = 1000;
         const height = 480;
@@ -112,12 +73,62 @@ class Renderer {
         this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
     }
 
-    getSignaturesMap(keySignature) {
-        const signaturesMap = [];
-        keySignature.map(x => signaturesMap[x.note] = x.alteration);
-        return signaturesMap;
+    /**
+     * Optimise l'armure pour minimiser les alterations accidentelles.
+     * Teste toutes les armures possibles (0-7 dieses, 0-7 bemols) et choisit la meilleure.
+     * @param {Object} scoreData - Partition a optimiser
+     * @returns {Object} Nouvelle partition avec armure optimale
+     */
+    optimizeKeySignature(scoreData) {
+        const allSignatures = [[]];
+        const sharpSignatures = 'FCGDAEB', flatSignatures = 'BEADGCF';
+        for (var i = 1; i <= 7; i++) {
+            allSignatures.push([...sharpSignatures.substr(0, i)].map(x => { return { note: x, alteration: 'sharp' }; }));
+            allSignatures.push([...flatSignatures.substr(0, i)].map(x => { return { note: x, alteration: 'flat' }; }));
+        }
+
+        this.drawingInfo.fakeMode = true;
+
+        var minAlterationCount = Infinity;
+        var bestScoreData = scoreData;
+
+        for (const signature of allSignatures) {
+            const newScoreData = {
+                title: scoreData.title,
+                tempo: scoreData.tempo,
+                timeSignature: scoreData.timeSignature,
+                clef: scoreData.clef,
+                keySignature: signature,
+                notes: scoreData.notes
+            };
+            this.render(newScoreData, null, true, true);
+            if (minAlterationCount <= this.drawingInfo.alterationCount) {
+                continue;
+            }
+            minAlterationCount = this.drawingInfo.alterationCount;
+            bestScoreData = newScoreData;
+        }
+        this.drawingInfo.fakeMode = false;
+        return bestScoreData;
     }
 
+    /**
+     * Active/desactive le mode optimisation (pour getBestRepresentation).
+     * @param {boolean} optimizationMode - true pour activer l'optimisation
+     * @returns {void}
+     */
+    setOptimizationMode(optimizationMode) {
+        this.drawingInfo.optimizationMode = optimizationMode;
+    }
+
+    /**
+     * Dessine le titre de la partition (centre, 28px, gras).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {string} title - Titre de la partition
+     * @param {number} canvasWidth - Largeur du canvas
+     * @returns {void}
+     * @private
+     */
     drawTitle(ctx, title, canvasWidth) {
         if (this.drawingInfo.fakeMode || !title || title.trim() === '') {
             return;
@@ -130,6 +141,14 @@ class Renderer {
         ctx.textAlign = 'left';
     }
 
+    /**
+     * Dessine les metadonnees (tempo, chiffrage, clef) sous le titre.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Object} scoreData - Partition complete
+     * @param {number} canvasWidth - Largeur du canvas
+     * @returns {void}
+     * @private
+     */
     drawMetadata(ctx, scoreData, canvasWidth) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -143,6 +162,14 @@ class Renderer {
         ctx.textAlign = 'left';
     }
 
+    /**
+     * Dessine les 5 lignes horizontales de la portee.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {string} clef - Type de clef (pour reference)
+     * @param {number|null} yOffset - Position Y de la portee (null = utiliser marginTop)
+     * @returns {void}
+     * @private
+     */
     drawStaff(ctx, clef, yOffset = null) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -162,6 +189,13 @@ class Renderer {
         }
     }
 
+    /**
+     * Dessine le symbole de clef (treble 𝄞 ou bass 𝄢).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {string} clef - "sol" ou "fa"
+     * @returns {void}
+     * @private
+     */
     drawClef(ctx, clef) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -172,16 +206,23 @@ class Renderer {
         ctx.fillStyle = '#000';
 
         if (clef === 'sol') {
-            // Treble clef wraps around G line (2nd line)
             const y = this.config.marginTop + (3 * this.config.staffLineSpacing);
             ctx.fillText('𝄞', x, y + 5);
         } else {
-            // Bass clef dots straddle the F line (4th line)
             const y = this.config.marginTop + (3 * this.config.staffLineSpacing);
             ctx.fillText('𝄢', x, y + 2);
         }
     }
 
+    /**
+     * Dessine l'armure (dieses et bemols a la clef).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array<{note: string, alteration: string}>} keySignature - Armure
+     * @param {number} startX - Position X de depart
+     * @param {string} clef - "sol" ou "fa"
+     * @returns {number} Position X apres l'armure
+     * @private
+     */
     drawKeySignature(ctx, keySignature, startX, clef) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -189,7 +230,6 @@ class Renderer {
         let x = startX;
 
         for (const alt of keySignature) {
-            // For notes below the staff in treble clef, display one octave up for visibility
             let position = this.notePositions[alt.note][clef];
 
             if (clef === 'sol' && alt.note !== 'A' && alt.note !== 'B') {
@@ -213,6 +253,14 @@ class Renderer {
         return x;
     }
 
+    /**
+     * Dessine le chiffrage de mesure (numerateur / denominateur).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {{numerator: number, denominator: number}} timeSignature - Chiffrage
+     * @param {number} startX - Position X de depart
+     * @returns {number} Position X apres le chiffrage
+     * @private
+     */
     drawTimeSignature(ctx, timeSignature, startX) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -231,13 +279,18 @@ class Renderer {
         return startX + 40;
     }
 
-    // Converts time signature denominator to beat value: {1:4, 2:2, 4:1, 8:0.5, 16:0.25}
-    beatsPerMesure(timeSignature) {
-        const unit = { 1: 4, 2: 2, 4: 1, 8: 0.5, 16: 0.25 };
-        var result = timeSignature.numerator * unit[timeSignature.denominator];
-        return result;
-    }
-
+    /**
+     * Dessine toutes les notes, accords et silences avec barres de mesure.
+     * Gere les retours a la ligne automatiques.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @param {Object} timeSignature - Chiffrage de mesure
+     * @param {number} startX - Position X de depart
+     * @param {string} clef - "sol" ou "fa"
+     * @param {Array} signatures - Map des alterations de l'armure
+     * @returns {void}
+     * @private
+     */
     drawNotes(ctx, notes, timeSignature, startX, clef, signatures) {
         let x = startX;
         let currentStaffY = this.config.marginTop;
@@ -247,7 +300,6 @@ class Renderer {
         let remainingUntilMeasureBar = beatsPerMesure;
 
         for (const item of notes) {
-            // Line break when exceeding staff width
             if (x > 850) {
                 staffCount++;
                 x = this.config.staffStartX + this.config.clefWidth + 60;
@@ -286,7 +338,6 @@ class Renderer {
                     noteY = notePosition.y;
                     remainingUntilMeasureBar -= remainingItemDuration;
                 }
-                // Tie arc between split notes
                 if (firstNoteX != lastNoteX) {
                     this.drawLink(ctx, firstNoteX + this.config.noteWidth / 2, lastNoteX, noteY - 40);
                 }
@@ -296,28 +347,22 @@ class Renderer {
         this.drawBarline(ctx, x, currentStaffY, true);
     }
 
-    drawLink(ctx, firstNoteX, lastNoteX, noteY) {
-        if (this.drawingInfo.fakeMode) {
-            return;
-        }
-        let centerX = (firstNoteX + lastNoteX) / 2;
-        let offsetY = this.config.staffLineSpacing * 10;
-        let centerY = noteY + offsetY;
-        let radiusX = (lastNoteX - firstNoteX) / 2;
-        let radius = (radiusX ** 2 + offsetY ** 2) ** .5;
-        let angleStart = Math.asin(offsetY / radius) - Math.PI;
-        let angleEnd = -Math.asin(offsetY / radius);
-
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, angleEnd, angleStart, true);
-        ctx.stroke();
-    }
-
+    /**
+     * Dessine une note simple (tete, hampe, alteration, point).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Object} note - Note a dessiner
+     * @param {number} x - Position X
+     * @param {string} clef - "sol" ou "fa"
+     * @param {Array} signatures - Map des alterations de l'armure
+     * @param {number|null} staffY - Position Y de la portee (null = marginTop)
+     * @param {number|null} durationModification - Duree alternative (pour notes liees)
+     * @returns {{x: number, y: number}} Nouvelle position X et Y de la note
+     * @private
+     */
     drawNote(ctx, note, x, clef, signatures, staffY = null, durationModification = null) {
         var effectiveNote = { note: note.note, alteration: note.alteration, octave: note.octave };
         effectiveNote = this.getBestRepresentation(effectiveNote, signatures);
 
-        // position = base + octave * 7 (7 notes per octave on the staff)
         const basePosition = this.notePositions[effectiveNote.note][clef];
         const position = basePosition + (effectiveNote.octave * 7);
         const y = this.getYPosition(position, staffY);
@@ -335,74 +380,18 @@ class Renderer {
         return { 'x': x + this.config.noteWidth, 'y': y };
     }
 
-    handleDot(ctx, x, y, duration) {
-        if (this.drawingInfo.fakeMode) {
-            return;
-        }
-
-        if (this.isDotted(duration)) {
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    computeAlteration(note, initialAlteration, defaultAlteration) {
-        var alterationToDraw = initialAlteration;
-        if (defaultAlteration) {
-            if (alterationToDraw == defaultAlteration) {
-                alterationToDraw = '';
-            } else if (alterationToDraw == '') {
-                alterationToDraw = 'natural';
-            }
-        }
-        return alterationToDraw;
-    }
-
-    getSecondaryRepresentation(noteWithAlteration) {
-        if (noteWithAlteration.alteration == 'sharp') {
-            const notes = 'ABCDEFGA';
-            return {
-                note: notes[notes.indexOf(noteWithAlteration.note) + 1],
-                alteration: 'flat',
-                octave: noteWithAlteration.note == 'B' ? noteWithAlteration.octave + 1 : noteWithAlteration.octave
-            };
-        }
-        if (noteWithAlteration.alteration == 'flat') {
-            const notes = 'AGFEDCBA';
-            return {
-                note: notes[notes.indexOf(noteWithAlteration.note) + 1],
-                alteration: 'sharp',
-                octave: noteWithAlteration.note == 'C' ? noteWithAlteration.octave - 1 : noteWithAlteration.octave
-            };
-        }
-        return noteWithAlteration;
-    }
-
-    getBestRepresentation(noteWithAlteration, defaultAlterations) {
-        if (!this.drawingInfo.optimizationMode) {
-            return noteWithAlteration;
-        }
-        var option1 = this.computeAlteration(noteWithAlteration.note, noteWithAlteration.alteration, defaultAlterations[noteWithAlteration.note]);
-        if (!option1) {
-            return noteWithAlteration;
-        }
-        var secondaryRep = this.getSecondaryRepresentation(noteWithAlteration);
-        var option2 = this.computeAlteration(secondaryRep.note, secondaryRep.alteration, defaultAlterations[secondaryRep.note]);
-        if (!option2) {
-            return secondaryRep;
-        }
-        return noteWithAlteration;
-    }
-
-    handleAlteration(ctx, x, y, note, defaultAlterations) {
-        var alterationToDraw = this.computeAlteration(note.note, note.alteration, defaultAlterations[note.note]);
-        if (alterationToDraw) {
-            this.drawAccidental(ctx, alterationToDraw, x - 15, y);
-        }
-    }
-
+    /**
+     * Dessine un accord (plusieurs notes superposees).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Object} chord - Accord a dessiner
+     * @param {number} x - Position X
+     * @param {string} clef - "sol" ou "fa"
+     * @param {Array} signatures - Map des alterations de l'armure
+     * @param {number|null} staffY - Position Y de la portee
+     * @param {number|null} durationModification - Duree alternative
+     * @returns {{x: number, y: number}} Nouvelle position X et Y
+     * @private
+     */
     drawChord(ctx, chord, x, clef, signatures, staffY = null, durationModification = null) {
         const duration = durationModification || chord.duration;
 
@@ -441,6 +430,15 @@ class Renderer {
         return { 'x': x + this.config.noteWidth, 'y': y };
     }
 
+    /**
+     * Dessine un silence (symbole geometrique selon la duree).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Object} rest - Silence a dessiner
+     * @param {number} x - Position X
+     * @param {number|null} staffY - Position Y de la portee
+     * @returns {number} Nouvelle position X
+     * @private
+     */
     drawRest(ctx, rest, x, staffY = null) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -460,7 +458,6 @@ class Renderer {
             ctx.lineTo(x + 5, originY);
             ctx.fill();
         } else if (rest.duration >= 1) {
-            // Quarter rest: zigzag with curved tail
             ctx.save();
             ctx.strokeStyle = '#000';
             ctx.fillStyle = '#000';
@@ -481,7 +478,6 @@ class Renderer {
 
             ctx.restore();
         } else if (rest.duration >= 0.5) {
-            // Eighth rest
             ctx.beginPath();
             ctx.arc(x + 5, y + 3, 3, 0, Math.PI * 2);
             ctx.fill();
@@ -490,7 +486,6 @@ class Renderer {
             ctx.lineTo(x + 5, y + 15);
             ctx.stroke();
         } else {
-            // Sixteenth rest
             ctx.beginPath();
             ctx.arc(x + 5, y + 3, 2, 0, Math.PI * 2);
             ctx.fill();
@@ -508,6 +503,15 @@ class Renderer {
         return x;
     }
 
+    /**
+     * Dessine la tete de note (ovale pleine ou vide selon la duree).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} duration - Duree de la note
+     * @returns {void}
+     * @private
+     */
     drawNoteHead(ctx, x, y, duration) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -518,18 +522,25 @@ class Renderer {
         ctx.lineWidth = 2;
 
         if (duration >= 2) {
-            // Half/whole note: hollow oval
             ctx.beginPath();
             ctx.ellipse(x + 5, y, 6, 5, -0.3, 0, Math.PI * 2);
             ctx.stroke();
         } else {
-            // Quarter/eighth/sixteenth: filled oval
             ctx.beginPath();
             ctx.ellipse(x + 5, y, 6, 5, -0.3, 0, Math.PI * 2);
             ctx.fill();
         }
     }
 
+    /**
+     * Dessine la hampe de note (et crochets si necessaire).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} x - Position X
+     * @param {number} y - Position Y de la tete
+     * @param {number} duration - Duree de la note
+     * @returns {void}
+     * @private
+     */
     drawNoteStem(ctx, x, y, duration) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -543,7 +554,6 @@ class Renderer {
         ctx.lineTo(x + 11, y - 40);
         ctx.stroke();
 
-        // Flag(s) for eighth and sixteenth notes
         if (duration <= 0.5) {
             ctx.beginPath();
             ctx.moveTo(x + 11, y - 40);
@@ -558,6 +568,16 @@ class Renderer {
         }
     }
 
+    /**
+     * Dessine une alteration accidentelle (diese, bemol, becarre).
+     * Incremente le compteur d'alterations (pour optimisation).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {string} alteration - Type d'alteration ('sharp', 'flat', 'natural')
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @returns {void}
+     * @private
+     */
     drawAccidental(ctx, alteration, x, y) {
         this.drawingInfo.alterationCount++;
         if (this.drawingInfo.fakeMode) {
@@ -576,14 +596,15 @@ class Renderer {
         }
     }
 
-    // Y = staffFirstLine + 4*spacing - position * halfSpacing
-    // Position 0 = bottom line, increases upward; each position = half a staff spacing
-    getYPosition(position, staffY = null) {
-        const staffFirstLine = (staffY || this.config.marginTop);
-        const spacing = this.config.staffLineSpacing / 2;
-        return staffFirstLine + (4 * this.config.staffLineSpacing) - (position * spacing);
-    }
-
+    /**
+     * Dessine une barre de mesure (simple ou double).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} x - Position X
+     * @param {number|null} staffY - Position Y de la portee
+     * @param {boolean} isDouble - true pour barre double (fin de morceau)
+     * @returns {void}
+     * @private
+     */
     drawBarline(ctx, x, staffY = null, isDouble = false) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -609,6 +630,15 @@ class Renderer {
         }
     }
 
+    /**
+     * Dessine les lignes supplementaires (au-dessus ou en-dessous de la portee).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} x - Position X de la note
+     * @param {number} position - Position sur la portee
+     * @param {number|null} staffY - Position Y de la portee
+     * @returns {void}
+     * @private
+     */
     drawLedgerLines(ctx, x, position, staffY = null) {
         if (this.drawingInfo.fakeMode) {
             return;
@@ -636,6 +666,184 @@ class Renderer {
         }
     }
 
+    /**
+     * Dessine un arc de liaison entre deux notes (pour notes prolongees sur plusieurs mesures).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} firstNoteX - Position X de la premiere note
+     * @param {number} lastNoteX - Position X de la derniere note
+     * @param {number} noteY - Position Y des notes
+     * @returns {void}
+     * @private
+     */
+    drawLink(ctx, firstNoteX, lastNoteX, noteY) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+        let centerX = (firstNoteX + lastNoteX) / 2;
+        let offsetY = this.config.staffLineSpacing * 10;
+        let centerY = noteY + offsetY;
+        let radiusX = (lastNoteX - firstNoteX) / 2;
+        let radius = (radiusX ** 2 + offsetY ** 2) ** .5;
+        let angleStart = Math.asin(offsetY / radius) - Math.PI;
+        let angleEnd = -Math.asin(offsetY / radius);
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, angleEnd, angleStart, true);
+        ctx.stroke();
+    }
+
+    /**
+     * Convertit l'armure en map pour acces rapide.
+     * @param {Array<{note: string, alteration: string}>} keySignature - Armure
+     * @returns {Array} Map indexee par nom de note
+     * @private
+     */
+    getSignaturesMap(keySignature) {
+        const signaturesMap = [];
+        keySignature.map(x => signaturesMap[x.note] = x.alteration);
+        return signaturesMap;
+    }
+
+    /**
+     * Calcule le nombre de temps par mesure (en noires).
+     * @param {{numerator: number, denominator: number}} timeSignature - Chiffrage
+     * @returns {number} Nombre de temps par mesure
+     * @private
+     */
+    beatsPerMesure(timeSignature) {
+        const unit = { 1: 4, 2: 2, 4: 1, 8: 0.5, 16: 0.25 };
+        var result = timeSignature.numerator * unit[timeSignature.denominator];
+        return result;
+    }
+
+    /**
+     * Convertit une position de portee en coordonnee Y pixels.
+     * @param {number} position - Position sur la portee (0 = ligne du bas, augmente vers le haut)
+     * @param {number|null} staffY - Position Y de la portee (null = marginTop)
+     * @returns {number} Coordonnee Y en pixels
+     * @private
+     */
+    getYPosition(position, staffY = null) {
+        const staffFirstLine = (staffY || this.config.marginTop);
+        const spacing = this.config.staffLineSpacing / 2;
+        return staffFirstLine + (4 * this.config.staffLineSpacing) - (position * spacing);
+    }
+
+    /**
+     * Gere l'affichage de l'alteration d'une note (diese, bemol, becarre).
+     * Appelle drawAccidental si necessaire.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {Object} note - Note avec alteration
+     * @param {Array} defaultAlterations - Alterations de l'armure
+     * @returns {void}
+     * @private
+     */
+    handleAlteration(ctx, x, y, note, defaultAlterations) {
+        var alterationToDraw = this.computeAlteration(note.note, note.alteration, defaultAlterations[note.note]);
+        if (alterationToDraw) {
+            this.drawAccidental(ctx, alterationToDraw, x - 15, y);
+        }
+    }
+
+    /**
+     * Gere l'affichage du point de prolongation (note pointee).
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {number} x - Position X
+     * @param {number} y - Position Y
+     * @param {number} duration - Duree de la note
+     * @returns {void}
+     * @private
+     */
+    handleDot(ctx, x, y, duration) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
+        if (this.isDotted(duration)) {
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    /**
+     * Calcule l'alteration effective a afficher (en tenant compte de l'armure).
+     * @param {string} note - Nom de la note
+     * @param {string} initialAlteration - Alteration de la note
+     * @param {string} defaultAlteration - Alteration de l'armure pour cette note
+     * @returns {string} Alteration a dessiner ('' si aucune)
+     * @private
+     */
+    computeAlteration(note, initialAlteration, defaultAlteration) {
+        var alterationToDraw = initialAlteration;
+        if (defaultAlteration) {
+            if (alterationToDraw == defaultAlteration) {
+                alterationToDraw = '';
+            } else if (alterationToDraw == '') {
+                alterationToDraw = 'natural';
+            }
+        }
+        return alterationToDraw;
+    }
+
+    /**
+     * Choisit la meilleure representation d'une note (Do# ou Reb) pour minimiser les alterations.
+     * @param {Object} noteWithAlteration - Note avec alteration
+     * @param {Array} defaultAlterations - Alterations de l'armure
+     * @returns {Object} Representation optimale (peut etre la note originale ou son enharmonique)
+     * @private
+     */
+    getBestRepresentation(noteWithAlteration, defaultAlterations) {
+        if (!this.drawingInfo.optimizationMode) {
+            return noteWithAlteration;
+        }
+        var option1 = this.computeAlteration(noteWithAlteration.note, noteWithAlteration.alteration, defaultAlterations[noteWithAlteration.note]);
+        if (!option1) {
+            return noteWithAlteration;
+        }
+        var secondaryRep = this.getSecondaryRepresentation(noteWithAlteration);
+        var option2 = this.computeAlteration(secondaryRep.note, secondaryRep.alteration, defaultAlterations[secondaryRep.note]);
+        if (!option2) {
+            return secondaryRep;
+        }
+        return noteWithAlteration;
+    }
+
+    /**
+     * Calcule la representation enharmonique d'une note (Do# <-> Reb).
+     * @param {Object} noteWithAlteration - Note avec alteration
+     * @returns {Object} Note enharmonique (ou note originale si non applicable)
+     * @private
+     */
+    getSecondaryRepresentation(noteWithAlteration) {
+        if (noteWithAlteration.alteration == 'sharp') {
+            const notes = 'ABCDEFGA';
+            return {
+                note: notes[notes.indexOf(noteWithAlteration.note) + 1],
+                alteration: 'flat',
+                octave: noteWithAlteration.note == 'B' ? noteWithAlteration.octave + 1 : noteWithAlteration.octave
+            };
+        }
+        if (noteWithAlteration.alteration == 'flat') {
+            const notes = 'AGFEDCBA';
+            return {
+                note: notes[notes.indexOf(noteWithAlteration.note) + 1],
+                alteration: 'sharp',
+                octave: noteWithAlteration.note == 'C' ? noteWithAlteration.octave - 1 : noteWithAlteration.octave
+            };
+        }
+        return noteWithAlteration;
+    }
+
+    /**
+     * Verifie si une duree correspond a une note pointee.
+     * @param {number} duration - Duree de la note
+     * @returns {boolean} true si pointee (0.375, 0.75, 1.5, 3, 6)
+     * @private
+     */
     isDotted(duration) {
         return [0.375, 0.75, 1.5, 3, 6].indexOf(duration) >= 0;
     }
