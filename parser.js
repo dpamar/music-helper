@@ -47,7 +47,7 @@ class Parser {
         const noteLines = lines.slice(4).filter(line => line.length > 0);
         const notes = this.parseNotes(noteLines.join(' '), this.getSignaturesMap(keySignature));
 
-        return {
+        const scoreData = {
             title,
             tempo,
             timeSignature,
@@ -55,6 +55,19 @@ class Parser {
             keySignature,
             notes
         };
+        console.log(this.toText(scoreData)); 
+        return scoreData;
+    }
+
+    toText(scoreData) {
+        var result = "";
+        // Ajout du titre
+        result += scoreData.title + "\n";
+
+        // etc...
+        result += "à compléter...";
+
+        return result;
     }
 
     /**
