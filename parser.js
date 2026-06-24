@@ -13,7 +13,7 @@ class Parser {
      */
     constructor() {
         this.validNotes = ['do', 'ré', 're', 'mi', 'fa', 'sol', 'la', 'si'];
-
+		
         this.noteMapping = {
             'do': 'C',
             'ré': 'D',
@@ -47,7 +47,7 @@ class Parser {
         const noteLines = lines.slice(4).filter(line => line.length > 0);
         const notes = this.parseNotes(noteLines.join(' '), this.getSignaturesMap(keySignature));
 
-        const scoreData = {
+        return {
             title,
             tempo,
             timeSignature,
@@ -55,19 +55,6 @@ class Parser {
             keySignature,
             notes
         };
-        console.log(this.toText(scoreData)); 
-        return scoreData;
-    }
-
-    toText(scoreData) {
-        var result = "";
-        // Ajout du titre
-        result += scoreData.title + "\n";
-
-        // etc...
-        result += "à compléter...";
-
-        return result;
     }
 
     /**

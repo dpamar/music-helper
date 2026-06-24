@@ -11,6 +11,96 @@ let midiAudioPlayer;
 let midiExporter;
 let currentScoreData = null;
 let selectedInstruments = new Set();
+const reverseNoteMapping = {
+     'C':'Do',
+     'D':'Re',
+     'E':'Mi',
+     'F':'Fa',
+     'G':'Sol',
+     'A':'La',
+     'B':'Si'
+};
+const reverseAlterationMapping = {
+    'sharp': '#',
+    'natural': '*',
+    'flat': 'b'
+};
+
+function scoreToText(scoreData) {
+    var result = "";
+    // Ajout du titre
+    result += scoreData.title + "\n";
+
+    // Ajout du tempo
+    result += scoreData.tempo + "\n";
+
+    // Ajout du chiffrage
+    result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
+
+    // Ajout de la clef
+    result += scoreData.clef;
+
+    // Ajout de l'armure
+    scoreData.keySignature.map(note => result += " " + reverseNoteMapping[note.note] + reverseAlterationMapping[note.alteration]);
+    result += "\n";
+
+    // Ajout des notes
+    var totalDuration = 0;
+    for (const note of scoreData.notes){
+        result += eval(note.type + "ToText")(note) + " ";
+        totalDuration += note.duration;
+        if (totalDuration >= 8) {
+            totalDuration = 0;
+            result += "\n";
+        }
+    }
+
+    return result;
+}
+
+function addDuration(text, duration) {
+    if (duration == 1) {
+        return text;
+    }
+    return text + duration;
+}
+
+function restToText(rest) {
+    return addDuration('S', rest.duration);
+}
+
+function chordToText(chord) {
+    var result = '';
+    for (const note of chord.notes) {
+        result += reverseNoteMapping[note.note];
+        result += reverseAlterationMapping[note.alteration] || '';
+        if (note.octave < 0) {
+            result += '-'.repeat(-note.octave);
+        } else if (note.octave >0) {
+            result += '+'.repeat(note.octave);
+        }
+    }
+    return addDuration(result, chord.duration);
+}
+
+function noteToText(note) {
+    var result = "";
+    // La note
+    result += reverseNoteMapping[note.note];
+
+    // L'altération
+    result += reverseAlterationMapping[note.alteration] || '';
+    
+    // L'octave
+    if (note.octave < 0) {
+        result += '-'.repeat(-note.octave);
+    } else if (note.octave >0) {
+        result += '+'.repeat(note.octave);
+    }
+    
+    // La durée
+    return addDuration(result, note.duration);
+}
 
 const INSTRUMENTS = {
     'piano': { name: 'Piano', program: 0, emoji: '🎹', gmName: 'Acoustic Grand Piano' },
@@ -169,6 +259,11 @@ function handleRender() {
             : scoreData;
 
         renderer.render(dataToRender, outputDiv);
+
+        const displayedScore = renderer.drawingInfo.lastScore;
+        const displayedScoreText = scoreToText(displayedScore);
+        textarea.value = displayedScoreText;
+
         renderer.setOptimizationMode(false);
         console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
 
@@ -199,7 +294,7 @@ function handleExample() {
 4/4
 sol
 Do Do Do Re Mi2 Re2
-Do Mi Re Re Do2
+Do Mi Re Re Do2 S2
 Do Do Do Re Mi2 Re2
 Do Mi Re Re Do2`;
 
@@ -499,6 +594,11 @@ function handleApplyTranspose() {
             : scoreData;
 
         renderer.render(dataToRender, outputDiv);
+
+        const displayedScore = renderer.drawingInfo.lastScore;
+        const displayedScoreText = scoreToText(displayedScore);
+        textarea.value = displayedScoreText;
+
         renderer.setOptimizationMode(false);
         console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
 
