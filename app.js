@@ -167,7 +167,6 @@ function handleRender() {
 
         currentScoreData = scoreData;
 
-        renderer.setOptimizationMode(optimizationEnabled);
         if (optimizationEnabled) {
             scoreData = renderer.optimizeKeySignature(scoreData);
         }
@@ -494,7 +493,6 @@ function handleApplyTranspose() {
 
         currentScoreData = scoreData;
 
-        renderer.setOptimizationMode(optimizationEnabled);
         if (optimizationEnabled) {
             scoreData = renderer.optimizeKeySignature(scoreData);
         }
