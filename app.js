@@ -146,6 +146,8 @@ function handleRender() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
+    const optimizeCheckbox = document.getElementById('optimize-checkbox');
+    const optimizationEnabled = optimizeCheckbox.checked;
 
     errorDiv.style.display = 'none';
 
@@ -156,14 +158,16 @@ function handleRender() {
             throw new Error('Veuillez saisir une partition');
         }
 
-        const scoreData = parser.parse(text);
+        let scoreData = parser.parse(text);
         console.log('✅ Partition parsée:', scoreData);
 
         currentScoreData = scoreData;
 
-        renderer.setOptimizationMode(true);
-        renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
-        renderer.setOptimizationMode(false);
+        renderer.setOptimizationMode(optimizationEnabled);
+        if (optimizationEnabled) {
+            scoreData = renderer.optimizeKeySignature(scoreData);
+        }
+        renderer.render(scoreData, outputDiv);
         console.log('✅ Partition rendue');
 
         setExportButtonState(true);
