@@ -1,10 +1,10 @@
 /**
- * MIDI-AUDIO-PLAYER.JS
- *
- * Synthesizes notes via Web Audio API directly in the browser.
+ * MidiAudioPlayer - Synthetise les notes via Web Audio API directement dans le navigateur.
  */
-
 class MidiAudioPlayer {
+    /**
+     * Initialise le lecteur audio (contexte non cree, fait a l'init()).
+     */
     constructor() {
         this.audioContext = null;
         this.scheduledNotes = [];
@@ -13,6 +13,12 @@ class MidiAudioPlayer {
         this.midiExporter = null;
     }
 
+    /**
+     * Initialise le contexte Web Audio et stocke la reference au MidiExporter.
+     * @param {HTMLAudioElement} audioElement - Element audio (peut etre null, non utilise actuellement)
+     * @param {MidiExporter} midiExporter - Instance de MidiExporter pour generer les evenements MIDI
+     * @returns {void}
+     */
     init(audioElement, midiExporter) {
         this.midiExporter = midiExporter;
 
@@ -21,6 +27,13 @@ class MidiAudioPlayer {
         }
     }
 
+    /**
+     * Lit la partition avec synthese audio Web Audio API.
+     * Programme tous les oscillateurs a l'avance (pas de drift temporel).
+     * @param {Object} scoreData - Partition a jouer
+     * @returns {Promise<void>} Promise qui se resout immediatement (lecture asynchrone)
+     * @throws {Error} Si MidiExporter n'est pas initialise ou si scoreData est null
+     */
     async play(scoreData) {
         if (!this.midiExporter) {
             throw new Error('MidiExporter not initialized. Call init() first.');
@@ -32,7 +45,6 @@ class MidiAudioPlayer {
 
         this.stop();
 
-        // Resume suspended context (browser autoplay policy requires user gesture)
         if (this.audioContext.state === 'suspended') {
             await this.audioContext.resume();
         }
@@ -84,15 +96,44 @@ class MidiAudioPlayer {
         }, totalDuration * 1000);
     }
 
+    /**
+     * Arrete la lecture immediatement avec rampe de gain (evite les clics).
+     * @returns {void}
+     */
+    stop() {
+        this.isCurrentlyPlaying = false;
+
+        this.scheduledNotes.forEach(({ oscillator, gainNode }) => {
+            try {
+                gainNode.gain.cancelScheduledValues(this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(gainNode.gain.value, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.01);
+
+                oscillator.stop(this.audioContext.currentTime + 0.01);
+            } catch (e) {
+                // Oscillator already stopped
+            }
+        });
+
+        this.scheduledNotes = [];
+    }
+
+    /**
+     * Programme une note individuelle (oscillateur + enveloppe ADSR).
+     * Formule de frequence : f = 440 * 2^((n - 69) / 12) ou A4 = MIDI 69 = 440 Hz.
+     * @param {number} midiNumber - Numero MIDI (0-127)
+     * @param {number} startTime - Temps de debut (AudioContext.currentTime + offset)
+     * @param {number} duration - Duree en secondes
+     * @returns {void}
+     * @private
+     */
     scheduleNote(midiNumber, startTime, duration) {
-        // f = 440 * 2^((n - 69) / 12) where A4 = MIDI 69 = 440 Hz
         const frequency = 440 * Math.pow(2, (midiNumber - 69) / 12);
 
         const oscillator = this.audioContext.createOscillator();
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(frequency, startTime);
 
-        // Simplified ADSR envelope: fast attack, sustain at 0.2, linear release
         const gainNode = this.audioContext.createGain();
         gainNode.gain.setValueAtTime(0, startTime);
         gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
@@ -108,30 +149,19 @@ class MidiAudioPlayer {
         this.scheduledNotes.push({ oscillator, gainNode, startTime, duration });
     }
 
-    stop() {
-        this.isCurrentlyPlaying = false;
-
-        this.scheduledNotes.forEach(({ oscillator, gainNode }) => {
-            try {
-                // Fast ramp to 0 avoids audio clicks
-                gainNode.gain.cancelScheduledValues(this.audioContext.currentTime);
-                gainNode.gain.setValueAtTime(gainNode.gain.value, this.audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.01);
-
-                oscillator.stop(this.audioContext.currentTime + 0.01);
-            } catch (e) {
-                // Oscillator already stopped
-            }
-        });
-
-        this.scheduledNotes = [];
-    }
-
-    get isPlaying() {
-        return this.isCurrentlyPlaying;
-    }
-
+    /**
+     * Libere les ressources audio (appelle stop()).
+     * @returns {void}
+     */
     cleanup() {
         this.stop();
+    }
+
+    /**
+     * Retourne l'etat de lecture actuel.
+     * @returns {boolean} true si en cours de lecture
+     */
+    get isPlaying() {
+        return this.isCurrentlyPlaying;
     }
 }
