@@ -55,6 +55,49 @@ class Renderer {
             'A': { 'sol': 3, 'fa': 8 },   // La : interligne
             'B': { 'sol': 4, 'fa': 9 }    // Si : ligne 3 (sol)
         };
+
+        this.drawingInfo = {
+            optimizationMode: false,
+            fakeMode: false,
+            alterationCount: 0
+        };
+    }
+
+    optimizeKeySignature(scoreData) {
+        const allSignatures = [ [] ];
+        const sharpSignatures = 'FCGDAEB', flatSignatures = 'BEADGCF';
+        for (var i=1; i<=7; i++) {
+            allSignatures.push([...sharpSignatures.substr(0, i)].map(x=>{return {note: x, alteration: 'sharp'}}));
+            allSignatures.push([ ...flatSignatures.substr(0, i)].map(x=>{return {note: x, alteration: 'flat' }}));
+        }
+
+        this.drawingInfo.fakeMode = true;
+
+        var minAlterationCount = Infinity;
+        var bestScoreData = scoreData;
+
+        for (const signature of allSignatures) {
+            const newScoreData = {
+                title: scoreData.title,
+                tempo: scoreData.tempo,
+                timeSignature: scoreData.timeSignature,
+                clef: scoreData.clef,
+                keySignature: signature,
+                notes: scoreData.notes
+            };
+            this.render(newScoreData, null, true, true);
+            if (minAlterationCount <= this.drawingInfo.alterationCount) {
+                continue;
+            }
+            minAlterationCount = this.drawingInfo.alterationCount;
+            bestScoreData = newScoreData;
+        }
+        this.drawingInfo.fakeMode = false;
+        return bestScoreData;
+    }
+
+    setOptimizationMode(optimizationMode) {
+        this.drawingInfo.optimizationMode = optimizationMode;
     }
 
     /**
@@ -63,24 +106,29 @@ class Renderer {
      * @param {HTMLElement} container - Élément DOM où insérer le canvas
      */
     render(scoreData, container) {
-        // Nettoie le container de manière sécurisée (pas d'innerHTML)
-        while (container.firstChild) {
-            container.removeChild(container.firstChild);
+            const width = 1000;
+            const height = 480;
+
+        var ctx = null;
+        if (!this.drawingInfo.fakeMode) {
+            // Nettoie le container de manière sécurisée (pas d'innerHTML)
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+    
+            // Crée le canvas
+            const canvas = document.createElement('canvas');
+            canvas.id = 'score-canvas';
+    
+            // Calcule les dimensions nécessaires
+            canvas.width = width;
+            canvas.height = height;
+    
+            container.appendChild(canvas);
+            ctx = canvas.getContext('2d');
         }
-
-        // Crée le canvas
-        const canvas = document.createElement('canvas');
-        canvas.id = 'score-canvas';
-
-        // Calcule les dimensions nécessaires
-        const width = 1000;
-        const height = 480;
-        canvas.width = width;
-        canvas.height = height;
-
-        container.appendChild(canvas);
-
-        const ctx = canvas.getContext('2d');
+        
+        this.drawingInfo.alterationCount = 0;
 
         // Dessine le titre et les métadonnées sur le canvas
         this.drawTitle(ctx, scoreData.title, width);
@@ -101,8 +149,14 @@ class Renderer {
 
         // Dessine les notes
         currentX += 20; // Petit espace après le chiffrage
-        this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, scoreData.signaturesMap);
+        this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
     }
+
+        getSignaturesMap(keySignature) {
+                const signaturesMap = [];
+                keySignature.map(x=>signaturesMap[x.note] = x.alteration);
+                return signaturesMap;
+        }  
 
     /**
      * Dessine le titre de la partition sur le canvas
@@ -111,7 +165,7 @@ class Renderer {
      * @param {number} canvasWidth - Largeur du canvas
      */
     drawTitle(ctx, title, canvasWidth) {
-        if (!title || title.trim() === '') {
+        if (this.drawingInfo.fakeMode || !title || title.trim() === '') {
             return;
         }
 
@@ -129,6 +183,9 @@ class Renderer {
      * @param {number} canvasWidth - Largeur du canvas
      */
     drawMetadata(ctx, scoreData, canvasWidth) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
         const metaText = `♩ = ${scoreData.tempo} | ${scoreData.timeSignature.numerator}/${scoreData.timeSignature.denominator} | Clef de ${scoreData.clef}`;
 
         ctx.font = '16px sans-serif';
@@ -146,6 +203,9 @@ class Renderer {
      * @param {number} yOffset - Décalage Y (pour portées multiples)
      */
     drawStaff(ctx, clef, yOffset = null) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
         const y = yOffset || this.config.marginTop;
         const spacing = this.config.staffLineSpacing;
 
@@ -168,6 +228,9 @@ class Renderer {
      * @param {string} clef - Type de clef
      */
     drawClef(ctx, clef) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
         const x = this.config.staffStartX + 10;
 
         ctx.font = 'bold 60px serif';
@@ -195,6 +258,9 @@ class Renderer {
      * @returns {number} - Nouvelle position X
      */
     drawKeySignature(ctx, keySignature, startX, clef) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
         let x = startX;
 
         for (const alt of keySignature) {
@@ -232,6 +298,9 @@ class Renderer {
      * @returns {number} - Nouvelle position X
      */
     drawTimeSignature(ctx, timeSignature, startX) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
         const y = this.config.marginTop + (2 * this.config.staffLineSpacing);
 
         ctx.font = 'bold 24px serif';
@@ -337,6 +406,9 @@ class Renderer {
      * @param {noteY} number - coordonnée Y des deux notes
      */
     drawLink(ctx, firstNoteX, lastNoteX, noteY) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
         let centerX = (firstNoteX + lastNoteX) / 2;
         let offsetY = this.config.staffLineSpacing * 10;
         let centerY = noteY + offsetY;
@@ -361,9 +433,12 @@ class Renderer {
      * @returns {number} - Nouvelle position X
      */
     drawNote(ctx, note, x, clef, signatures, staffY = null, durationModification = null) {
+        var effectiveNote = { note: note.note, alteration: note.alteration, octave: note.octave }; ;
+        effectiveNote = this.getBestRepresentation(effectiveNote, signatures);
+
         // Calcule la position Y de la note sur la portée
-        const basePosition = this.notePositions[note.note][clef];
-        const position = basePosition + (note.octave * 7); // Décalage d'octave
+        const basePosition = this.notePositions[effectiveNote.note][clef];
+        const position = basePosition + (effectiveNote.octave * 7); // Décalage d'octave
         const y = this.getYPosition(position, staffY);
         const duration = durationModification || note.duration;
 
@@ -374,14 +449,24 @@ class Renderer {
         this.drawNoteHead(ctx, x, y, duration);
 
         // Dessine l'altération (si présente)
-		this.handleAlteration(ctx, x, y, note.alteration, signatures[note.note]);
+        this.handleAlteration(ctx, x, y, effectiveNote, signatures);
+
+        // Dessine le point (pour les notes pointées)
+        this.handleDot(ctx, x, y, duration);
 
         // Dessine la queue (si pas ronde)
         if (duration < 4) {
             this.drawNoteStem(ctx, x, y, duration);
         }
 
-        // Dessine le point (pour les notes pointées)
+        return {'x': x + this.config.noteWidth, 'y': y};
+    }
+
+    handleDot(ctx, x, y, duration) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
         if (this.isDotted(duration)) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
@@ -389,22 +474,62 @@ class Renderer {
             ctx.fill();
         }
 
-        return {'x': x + this.config.noteWidth, 'y': y};
     }
 
-	handleAlteration(ctx, x, y, initialAlteration, defaultAlteration) {
-		var alterationToDraw = initialAlteration;
-		if (defaultAlteration) {
-			if (initialAlteration == defaultAlteration) {
-				alterationToDraw = '';
-			} else if (initialAlteration == '') {
-				alterationToDraw = 'natural';
-			}
-		}
+    computeAlteration(note, initialAlteration, defaultAlteration) {
+        var alterationToDraw = initialAlteration;
+        if (defaultAlteration) {
+            if (alterationToDraw == defaultAlteration) {
+                alterationToDraw = '';
+            } else if (alterationToDraw == '') {
+                alterationToDraw = 'natural';
+            }
+        }
+        return alterationToDraw; 
+    }
+
+    getSecondaryRepresentation(noteWithAlteration) {
+        if (noteWithAlteration.alteration == 'sharp') {
+            const notes = 'ABCDEFGA';
+            return {
+                note: notes[notes.indexOf(noteWithAlteration.note) + 1],
+                alteration: 'flat',
+                octave: noteWithAlteration.note == 'B' ? noteWithAlteration.octave + 1 : noteWithAlteration.octave
+            }
+        }
+        if (noteWithAlteration.alteration == 'flat') {
+            const notes = 'AGFEDCBA';
+            return {
+                note: notes[notes.indexOf(noteWithAlteration.note) + 1],
+                alteration: 'sharp',
+                octave: noteWithAlteration.note == 'C' ? noteWithAlteration.octave - 1 : noteWithAlteration.octave
+            };
+	}
+        return noteWithAlteration;
+    }
+
+    getBestRepresentation(noteWithAlteration, defaultAlterations) {
+        if (!this.drawingInfo.optimizationMode) {
+            return noteWithAlteration;
+        }
+        var option1 = this.computeAlteration(noteWithAlteration.note, noteWithAlteration.alteration, defaultAlterations[noteWithAlteration.note]);
+        if (!option1) {
+            return noteWithAlteration;
+        }
+        var secondaryRep = this.getSecondaryRepresentation(noteWithAlteration);
+        var option2 = this.computeAlteration(secondaryRep.note, secondaryRep.alteration, defaultAlterations[secondaryRep.note]);
+        if (!option2) {
+            return secondaryRep;
+        }
+        return noteWithAlteration;
+    }
+
+    handleAlteration(ctx, x, y, note, defaultAlterations) {
+        var alterationToDraw = this.computeAlteration(note.note, note.alteration, defaultAlterations[note.note]);
         if (alterationToDraw) {
             this.drawAccidental(ctx, alterationToDraw, x - 15, y);
         }
-	}
+    }
 
     /**
      * Dessine un accord (plusieurs notes empilées)
@@ -423,10 +548,13 @@ class Renderer {
 	var firstNote = null;
 	var firstNotePosition = 0;
         for (const note of chord.notes) {
-            const basePosition = this.notePositions[note.note][clef];
-            const position = basePosition + (note.octave * 7);
+            var effectiveNote = { note: note.note, alteration: note.alteration, octave: note.octave }; ;
+            effectiveNote = this.getBestRepresentation(effectiveNote, signatures);
+
+            const basePosition = this.notePositions[effectiveNote.note][clef];
+            const position = basePosition + (effectiveNote.octave * 7);
             if (firstNote == null || firstNotePosition < position) {
-                firstNote = note;
+                firstNote = effectiveNote;
                 firstNotePosition = position;
             }
             const y = this.getYPosition(position, staffY);
@@ -442,7 +570,7 @@ class Renderer {
 
 
             // Altération
-			this.handleAlteration(ctx, x, y, note.alteration, signatures[note.note]);
+			this.handleAlteration(ctx, x, y, effectiveNote.alteration, signatures[effectiveNote.note]);
         }
 
         const basePosition = this.notePositions[firstNote.note][clef];
@@ -455,13 +583,7 @@ class Renderer {
         }
 
         // Dessine le point (pour les accords pointés, un pour tout l'accord)
-        if (this.isDotted(duration)) {
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(x + 20, y, 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
+        this.handleDot(ctx, x, y, duration);
         return {'x': x + this.config.noteWidth, 'y': y};
     }
 
@@ -474,6 +596,10 @@ class Renderer {
      * @returns {number} - Nouvelle position X
      */
     drawRest(ctx, rest, x, staffY = null) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
         const y = (staffY || this.config.marginTop) + (this.config.staffLineSpacing);
 
         ctx.font = 'bold 30px serif';
@@ -545,6 +671,10 @@ class Renderer {
      * @param {number} duration - Durée de la note
      */
     drawNoteHead(ctx, x, y, duration) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
         ctx.fillStyle = '#000';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
@@ -570,6 +700,10 @@ class Renderer {
      * @param {number} duration - Durée
      */
     drawNoteStem(ctx, x, y, duration) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
 
@@ -604,6 +738,11 @@ class Renderer {
      * @param {number} y - Position Y
      */
     drawAccidental(ctx, alteration, x, y) {
+        this.drawingInfo.alterationCount++;
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
         ctx.font = 'bold 20px serif';
         ctx.fillStyle = '#000';
 
@@ -643,6 +782,10 @@ class Renderer {
      * @param {boolean} isDouble - Barre double (fin de partition)
      */
     drawBarline(ctx, x, staffY = null, isDouble = false) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
         const y = staffY || this.config.marginTop;
         const height = 4 * this.config.staffLineSpacing;
 
@@ -673,6 +816,10 @@ class Renderer {
      * @param {number} staffY - Position Y de la portée
      */
     drawLedgerLines(ctx, x, position, staffY = null) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+
 		ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
 
