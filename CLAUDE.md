@@ -565,6 +565,36 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - ⚠️ Lecture MIDI : la sélection d'instrument n'affecte PAS le bouton "Lire la partition" (son synthétique uniforme), seulement l'export MIDI
 - ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
 
+## 📝 Documentation JSDoc
+
+Tous les modules JavaScript sont documentés avec JSDoc en français.
+
+**Format des commentaires :**
+- Description de la fonction/méthode
+- `@param {type} nom - Description` pour chaque paramètre
+- `@returns {type} Description` pour la valeur de retour
+- `@throws {Error} Description` si la fonction lance des exceptions
+- `@private` pour les méthodes internes (helpers)
+
+**Ordre des méthodes dans chaque classe :**
+1. Constructor
+2. Méthodes publiques principales (ordre d'utilisation dans le workflow)
+3. Méthodes publiques auxiliaires
+4. Méthodes privées/helpers
+
+**Exemple :**
+```javascript
+/**
+ * Parse le texte complet d'une partition.
+ * @param {string} text - Texte brut de la partition
+ * @returns {Object} Objet ParseResult
+ * @throws {Error} Si le format est invalide
+ */
+parse(text) { ... }
+```
+
+Cette organisation facilite la compréhension du code pour les débutants et améliore l'auto-complétion dans les IDE modernes.
+
 ## 📚 Ressources
 
 ### Notation musicale
