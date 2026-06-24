@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Round-trip parse/toText/parse</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Parser - Round-trip parse → toText → parse</h1>
+    <div id="results"></div>
+
+    <script src="../parser.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function assertEqual(actual, expected, message) {
+            const pass = actual === expected;
+            results.push({ pass, message: pass ? message : `${message} — got "${actual}", expected "${expected}"` });
+        }
+
+        function assertDeepEqual(actual, expected, message) {
+            const pass = JSON.stringify(actual) === JSON.stringify(expected);
+            results.push({ pass, message: pass ? message : `${message} — got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}` });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const parser = new Parser();
+
+        function notesToText(notes) {
+            return notes.map(n => parser[n.type + 'ToText'](n)).join(' ');
+        }
+
+        function roundTrip(inputText) {
+            const score1 = parser.parse(inputText);
+            const text = notesToText(score1.notes);
+            const reconstructed = score1.title + '\n' +
+                score1.tempo + '\n' +
+                score1.timeSignature.numerator + '/' + score1.timeSignature.denominator + '\n' +
+                score1.clef + '\n' +
+                text;
+            const score2 = parser.parse(reconstructed);
+            return { score1, score2, text };
+        }
+
+        // Test 1: Notes simples avec différentes durées
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nDo Re2 Mi0.5 Fa4 Sol1.5');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: notes simples avec durées');
+        }
+
+        // Test 2: Notes avec altérations
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nDo# Mib Fa* Si');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: notes avec altérations (dièse, bémol, bécarre)');
+        }
+
+        // Test 3: Notes avec octaves
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nDo- Re+ Mi-- Sol');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: notes avec octaves (-, +, --)');
+        }
+
+        // Test 4: Silences avec différentes durées
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nS S2 S0.5 S4 S0.25');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: silences avec durées variées');
+        }
+
+        // Test 5: Accords simples
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nDoMiSol2 ReFaLa');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: accords simples');
+        }
+
+        // Test 6: Accords avec altérations et octaves
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nDo#Mi+Sol+0.5');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: accord avec altérations et octaves');
+        }
+
+        // Test 7: Mélange complet notes + accords + silences
+        {
+            const { score1, score2 } = roundTrip('Test complet\n120\n4/4\nsol\nDo Re Mi Fa Sol2 S DoMiSol2 S0.5 Do#+ Mib- S4');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: mélange notes, accords, silences');
+        }
+
+        // Test 8: Partition en 3/4
+        {
+            const { score1, score2 } = roundTrip('Valse\n90\n3/4\nsol\nDo2 Re Mi2 Fa');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: partition 3/4');
+            assertEqual(score2.timeSignature.numerator, 3, 'Round-trip: chiffrage numerator preserved');
+            assertEqual(score2.timeSignature.denominator, 4, 'Round-trip: chiffrage denominator preserved');
+        }
+
+        // Test 9: Titre et tempo préservés
+        {
+            const { score1, score2 } = roundTrip('Ma partition\n140\n4/4\nsol\nDo Re Mi');
+            assertEqual(score2.title, 'Ma partition', 'Round-trip: titre préservé');
+            assertEqual(score2.tempo, 140, 'Round-trip: tempo préservé');
+        }
+
+        // Test 10: Clef de fa
+        {
+            const { score1, score2 } = roundTrip('Test fa\n120\n4/4\nfa\nDo Re Mi');
+            assertEqual(score2.clef, 'fa', 'Round-trip: clef de fa préservée');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: notes en clef de fa');
+        }
+
+        // Test 11: Bécarre dans accord
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nDo*MiSol');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: bécarre dans accord');
+        }
+
+        // Test 12: Silence noire pointée
+        {
+            const { score1, score2 } = roundTrip('Test\n120\n4/4\nsol\nS1.5 Do S0.25');
+            assertDeepEqual(score2.notes, score1.notes, 'Round-trip: silence noire pointée et quart de soupir');
+        }
+
+        displayResults();
+    </script>
+</body>
+</html>
