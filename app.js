@@ -142,12 +142,16 @@ function init() {
     console.log('✅ Application initialisée');
 }
 
+function getOptimizationEnabled() {
+    const optimizeCheckbox = document.getElementById('optimize-checkbox');
+    return optimizeCheckbox ? optimizeCheckbox.checked : true;
+}
+
 function handleRender() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
-    const optimizeCheckbox = document.getElementById('optimize-checkbox');
-    const optimizationEnabled = optimizeCheckbox.checked;
+    const optimizationEnabled = getOptimizationEnabled();
 
     errorDiv.style.display = 'none';
 
@@ -466,8 +470,7 @@ function handleApplyTranspose() {
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
     const inputSemitones = document.getElementById('transpose-semitones');
-    const optimizeCheckbox = document.getElementById('optimize-checkbox');
-    const optimizationEnabled = optimizeCheckbox.checked;
+    const optimizationEnabled = getOptimizationEnabled();
 
     errorDiv.style.display = 'none';
 
