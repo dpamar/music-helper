@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - chordToText</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Parser - chordToText</h1>
+    <div id="results"></div>
+
+    <script src="../parser.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function assertEqual(actual, expected, message) {
+            const pass = actual === expected;
+            results.push({ pass, message: pass ? message : `${message} — got "${actual}", expected "${expected}"` });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const parser = new Parser();
+
+        // Test: chordToText method exists
+        assert(typeof parser.chordToText === 'function', 'chordToText method exists');
+
+        // Test: accord Do majeur (durée 1 = par défaut)
+        assertEqual(
+            parser.chordToText({ type: 'chord', notes: [
+                { note: 'C', alteration: '', octave: 0 },
+                { note: 'E', alteration: '', octave: 0 },
+                { note: 'G', alteration: '', octave: 0 }
+            ], duration: 1 }),
+            'DoMiSol',
+            'Accord Do majeur durée 1 → "DoMiSol"'
+        );
+
+        // Test: accord Do majeur blanche (durée 2)
+        assertEqual(
+            parser.chordToText({ type: 'chord', notes: [
+                { note: 'C', alteration: '', octave: 0 },
+                { note: 'E', alteration: '', octave: 0 },
+                { note: 'G', alteration: '', octave: 0 }
+            ], duration: 2 }),
+            'DoMiSol2',
+            'Accord Do majeur blanche → "DoMiSol2"'
+        );
+
+        // Test: accord avec altérations
+        assertEqual(
+            parser.chordToText({ type: 'chord', notes: [
+                { note: 'C', alteration: 'sharp', octave: 0 },
+                { note: 'E', alteration: '', octave: 1 },
+                { note: 'G', alteration: '', octave: 1 }
+            ], duration: 0.5 }),
+            'Do#Mi+Sol+0.5',
+            'Accord Do# avec octaves → "Do#Mi+Sol+0.5"'
+        );
+
+        // Test: accord avec bémol
+        assertEqual(
+            parser.chordToText({ type: 'chord', notes: [
+                { note: 'E', alteration: 'flat', octave: 0 },
+                { note: 'G', alteration: '', octave: 0 },
+                { note: 'B', alteration: 'flat', octave: 0 }
+            ], duration: 4 }),
+            'MibSolSib4',
+            'Accord Mib mineur → "MibSolSib4"'
+        );
+
+        // Test: accord avec octave inférieure
+        assertEqual(
+            parser.chordToText({ type: 'chord', notes: [
+                { note: 'C', alteration: '', octave: -1 },
+                { note: 'E', alteration: '', octave: -1 },
+                { note: 'G', alteration: '', octave: -1 }
+            ], duration: 1 }),
+            'Do-Mi-Sol-',
+            'Accord Do majeur octave -1 → "Do-Mi-Sol-"'
+        );
+
+        // Test: accord deux notes
+        assertEqual(
+            parser.chordToText({ type: 'chord', notes: [
+                { note: 'C', alteration: '', octave: 0 },
+                { note: 'G', alteration: '', octave: 0 }
+            ], duration: 1.5 }),
+            'DoSol1.5',
+            'Accord deux notes pointé → "DoSol1.5"'
+        );
+
+        displayResults();
+    </script>
+</body>
+</html>

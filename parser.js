@@ -101,6 +101,19 @@ class Parser {
     }
 
     chordToText(chord) {
+        var result = "";
+        for (const note of chord.notes) {
+            result += this.noteToText({
+                note: note.note,
+                alteration: note.alteration,
+                octave: note.octave,
+                duration: 1
+            }).replace(/\d+\.?\d*$/, '');
+        }
+        if (chord.duration != 1) {
+            result += chord.duration;
+        }
+        return result;
     }
 
     noteToText(note) {
