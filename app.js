@@ -163,11 +163,11 @@ function handleRender() {
         currentScoreData = scoreData;
 
         const optimizationEnabled = checkboxOptimization && checkboxOptimization.checked;
+        renderer.setOptimizationMode(optimizationEnabled);
         const dataToRender = optimizationEnabled
             ? renderer.optimizeKeySignature(scoreData)
             : scoreData;
 
-        renderer.setOptimizationMode(optimizationEnabled);
         renderer.render(dataToRender, outputDiv);
         renderer.setOptimizationMode(false);
         console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
@@ -493,11 +493,11 @@ function handleApplyTranspose() {
         currentScoreData = scoreData;
 
         const optimizationEnabled = checkboxOptimization && checkboxOptimization.checked;
+        renderer.setOptimizationMode(optimizationEnabled);
         const dataToRender = optimizationEnabled
             ? renderer.optimizeKeySignature(scoreData)
             : scoreData;
 
-        renderer.setOptimizationMode(optimizationEnabled);
         renderer.render(dataToRender, outputDiv);
         renderer.setOptimizationMode(false);
         console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
