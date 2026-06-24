@@ -415,7 +415,7 @@ class Renderer {
                 this.drawNoteStem(ctx, x, y, 1);
             }
 
-            this.handleAlteration(ctx, x, y, effectiveNote.alteration, signatures[effectiveNote.note]);
+            this.handleAlteration(ctx, x, y, effectiveNote, signatures);
         }
 
         const basePosition = this.notePositions[firstNote.note][clef];
