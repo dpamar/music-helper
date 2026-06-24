@@ -93,6 +93,11 @@ class Parser {
     }
 
     restToText(rest) {
+        var result = "S";
+        if (rest.duration != 1) {
+            result += rest.duration;
+        }
+        return result;
     }
 
     chordToText(chord) {

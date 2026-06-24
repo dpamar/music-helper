@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - restToText</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Parser - restToText</h1>
+    <div id="results"></div>
+
+    <script src="../parser.js"></script>
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function assertEqual(actual, expected, message) {
+            const pass = actual === expected;
+            results.push({ pass, message: pass ? message : `${message} — got "${actual}", expected "${expected}"` });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const parser = new Parser();
+
+        // Test: restToText method exists
+        assert(typeof parser.restToText === 'function', 'restToText method exists');
+
+        // Test: silence noire (durée 1 = par défaut, pas de suffixe)
+        assertEqual(parser.restToText({ type: 'rest', duration: 1 }), 'S', 'Silence noire → "S"');
+
+        // Test: silence blanche (durée 2)
+        assertEqual(parser.restToText({ type: 'rest', duration: 2 }), 'S2', 'Silence blanche → "S2"');
+
+        // Test: silence ronde (durée 4)
+        assertEqual(parser.restToText({ type: 'rest', duration: 4 }), 'S4', 'Silence ronde → "S4"');
+
+        // Test: demi-soupir (croche, durée 0.5)
+        assertEqual(parser.restToText({ type: 'rest', duration: 0.5 }), 'S0.5', 'Demi-soupir → "S0.5"');
+
+        // Test: quart de soupir (double croche, durée 0.25)
+        assertEqual(parser.restToText({ type: 'rest', duration: 0.25 }), 'S0.25', 'Quart de soupir → "S0.25"');
+
+        // Test: silence noire pointée (durée 1.5)
+        assertEqual(parser.restToText({ type: 'rest', duration: 1.5 }), 'S1.5', 'Silence noire pointée → "S1.5"');
+
+        // Test: silence blanche pointée (durée 3)
+        assertEqual(parser.restToText({ type: 'rest', duration: 3 }), 'S3', 'Silence blanche pointée → "S3"');
+
+        displayResults();
+    </script>
+</body>
+</html>
