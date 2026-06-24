@@ -64,8 +64,20 @@ class Parser {
         // Ajout du titre
         result += scoreData.title + "\n";
 
-        // etc...
-        result += "à compléter...";
+        // Ajout du tempo
+        result += scoreData.tempo + "\n";
+		
+		// Ajout du chiffrage
+		result += scoreData.timeSignature + "\n";
+		
+		// Ajout de la clef
+		result += scoreData.clef + "\n";
+		
+		// Ajout d'un truc utile
+		result += scoreData.keySignature + "\n";
+		
+		// Ajout des notes
+		result += scoreData.notes + "\n"
 
         return result;
     }
