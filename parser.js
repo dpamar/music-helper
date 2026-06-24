@@ -24,15 +24,6 @@ class Parser {
             'la': 'A',
             'si': 'B'
         };
-	this.reverseNoteMapping = {
-             'C':'Do',
-             'D':'Re',
-             'E':'Mi',
-             'F':'Fa',
-             'G':'Sol',
-             'A':'La',
-             'B':'Si'
-        };
     }
 
     /**
@@ -56,7 +47,7 @@ class Parser {
         const noteLines = lines.slice(4).filter(line => line.length > 0);
         const notes = this.parseNotes(noteLines.join(' '), this.getSignaturesMap(keySignature));
 
-        const scoreData = {
+        return {
             title,
             tempo,
             timeSignature,
@@ -64,88 +55,6 @@ class Parser {
             keySignature,
             notes
         };
-        console.log(this.toText(scoreData)); 
-        return scoreData;
-    }
-
-    toText(scoreData) {
-        var result = "";
-        // Ajout du titre
-        result += scoreData.title + "\n";
-
-        // Ajout du tempo
-        result += scoreData.tempo + "\n";
-		
-		// Ajout du chiffrage
-		result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
-		
-		// Ajout de la clef
-		result += scoreData.clef + "\n";
-		
-		// Ajout de l'armure
-		result += scoreData.keySignature + "\n";
-		
-		// Ajout des notes
-		for (const note of scoreData.notes){
-                    result += this[note.type + "ToText"](note) + " ";
-                }
-        return result;
-    }
-
-    restToText(rest) {
-		return "S" + rest.duration
-    }
-
-    chordToText(chord) {
-		var result = ''
-		for (const note of chord.notes) {
-			result += this.reverseNoteMapping[note.note];
-		
-
-			// L'altération
-			switch(note.alteration) {
-				case 'flat' : result += 'b'; break;
-				case 'sharp': result += '#'; break;
-				case 'natural': result += '*'; break;
-			}
-
-			// L'octave
-			if (note.octave < 0) {
-            result += '-'.repeat(-note.octave);
-			} else if (note.octave >0) {
-				result += '+'.repeat(note.octave);
-			}
-			
-		}
-		result += chord.duration
-		return result
-    }
-
-    noteToText(note) {
-        var result = "";
-        // La note
-        result += this.reverseNoteMapping[note.note];
-
-        // L'altération
-        switch(note.alteration) {
-            case 'flat' : result += 'b'; break;
-            case 'sharp': result += '#'; break;
-            case 'natural': result += '*'; break;
-        }
-
-        // L'octave
-        if (note.octave < 0) {
-            result += '-'.repeat(-note.octave);
-        } else if (note.octave >0) {
-            result += '+'.repeat(note.octave);
-        }
-
-        // La durée
-        if(note.duration != 1) {
-            result += note.duration;
-        }
-
-        return result;
     }
 
     /**

@@ -268,7 +268,7 @@ class Renderer {
      * @private
      */
     drawTimeSignature(ctx, timeSignature, startX) {
-        this.drawingInfo.lastScore.timeSignature = { numerator: timeSignature.numerator, denominator: timeSignature.denominator };
+        this.drawingInfo.lastScore.timeSignature = timeSignature;
         if (this.drawingInfo.fakeMode) {
             return;
         }
@@ -320,6 +320,11 @@ class Renderer {
             if (item.type === 'rest') {
                 x = this.drawRest(ctx, item, x, currentStaffY);
                 remainingUntilMeasureBar -= item.duration;
+                if (remainingUntilMeasureBar <= 0) {
+                    remainingUntilMeasureBar = beatsPerMesure;
+                    this.drawBarline(ctx, x, currentStaffY, false);
+                    x += this.config.noteWidth >> 1;
+                }
             } else {
                 let firstNoteX = null, lastNoteX = null;
                 let noteY = null;
@@ -352,6 +357,28 @@ class Renderer {
                 }
             }
         }
+        if (remainingUntilMeasureBar != beatsPerMesure) {
+            if (remainingUntilMeasureBar >= 4) {
+                x = this.drawRest(ctx, {duration: 4}, x, currentStaffY);
+                remainingUntilMeasureBar -= 4;
+            }
+            if (remainingUntilMeasureBar >= 2) {
+                x = this.drawRest(ctx, {duration: 2}, x, currentStaffY);
+                remainingUntilMeasureBar -= 2;
+            }
+            if (remainingUntilMeasureBar >= 1) {
+                x = this.drawRest(ctx, {duration: 1}, x, currentStaffY);
+                remainingUntilMeasureBar -= 1;
+            }
+            if (remainingUntilMeasureBar >= .5) {
+                x = this.drawRest(ctx, {duration: .5}, x, currentStaffY);
+                remainingUntilMeasureBar -= .5;
+            }
+            if (remainingUntilMeasureBar >= .25) {
+                x = this.drawRest(ctx, {duration: .25}, x, currentStaffY);
+                remainingUntilMeasureBar -= .25;
+            }
+        }
 
         this.drawBarline(ctx, x, currentStaffY, true);
     }
@@ -372,14 +399,6 @@ class Renderer {
         var effectiveNote = { note: note.note, alteration: note.alteration, octave: note.octave };
         effectiveNote = this.getBestRepresentation(effectiveNote, signatures);
 
-        this.drawingInfo.lastScore.notes.push({
-            note: effectiveNote.note,
-            alteration: effectiveNote.alteration,
-            octave: effectiveNote.octave,
-            type: 'note',
-            duration: note.duration
-        });
-
         const basePosition = this.notePositions[effectiveNote.note][clef];
         const position = basePosition + (effectiveNote.octave * 7);
         const y = this.getYPosition(position, staffY);
@@ -387,12 +406,20 @@ class Renderer {
 
         this.drawLedgerLines(ctx, x, position, staffY);
         this.drawNoteHead(ctx, x, y, duration);
-        this.handleAlteration(ctx, x, y, effectiveNote, signatures);
+        const effectiveAlteration = this.handleAlteration(ctx, x, y, effectiveNote, signatures);
         this.handleDot(ctx, x, y, duration);
 
         if (duration < 4) {
             this.drawNoteStem(ctx, x, y, duration);
         }
+
+        this.drawingInfo.lastScore.notes.push({
+            note: effectiveNote.note,
+            alteration: effectiveAlteration,
+            octave: effectiveNote.octave,
+            type: 'note',
+            duration: note.duration
+        });
 
         return { 'x': x + this.config.noteWidth, 'y': y };
     }
@@ -415,7 +442,7 @@ class Renderer {
         var chordData;
         this.drawingInfo.lastScore.notes.push(chordData = {
             type: 'chord',
-            duration: 'duration',
+            duration: chord.duration,
             notes: []
         });
         var firstNote = null;
@@ -438,8 +465,8 @@ class Renderer {
                 this.drawNoteStem(ctx, x, y, 1);
             }
 
-            this.handleAlteration(ctx, x, y, effectiveNote, signatures);
-            chordData.notes.push(effectiveNote);
+            const effectiveAlteration = this.handleAlteration(ctx, x, y, effectiveNote, signatures);
+            chordData.notes.push({note: effectiveNote.note, alteration: effectiveAlteration, octave: effectiveNote.octave});
         }
 
         const basePosition = this.notePositions[firstNote.note][clef];
@@ -765,7 +792,7 @@ class Renderer {
      * @param {number} y - Position Y
      * @param {Object} note - Note avec alteration
      * @param {Array} defaultAlterations - Alterations de l'armure
-     * @returns {void}
+     * @returns {string} - Alteration effective
      * @private
      */
     handleAlteration(ctx, x, y, note, defaultAlterations) {
@@ -773,6 +800,7 @@ class Renderer {
         if (alterationToDraw) {
             this.drawAccidental(ctx, alterationToDraw, x - 15, y);
         }
+        return alterationToDraw;
     }
 
     /**
