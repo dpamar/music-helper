@@ -5,15 +5,13 @@
  * Gère les événements utilisateur et orchestre Parser et Renderer
  */
 
-// Instances globales
 let parser;
 let renderer;
 let midiAudioPlayer;
 let midiExporter;
-let currentScoreData = null; // Stocke les dernières données parsées pour l'export
-let selectedInstruments = new Set(); // Stocke les clés des instruments sélectionnés
+let currentScoreData = null;
+let selectedInstruments = new Set();
 
-// Mapping des instruments disponibles
 const INSTRUMENTS = {
     'piano': { name: 'Piano', program: 0, emoji: '🎹', gmName: 'Acoustic Grand Piano' },
     'guitare': { name: 'Guitare', program: 24, emoji: '🎸', gmName: 'Acoustic Guitar (nylon)' },
@@ -29,18 +27,12 @@ const INSTRUMENTS = {
     'orgue': { name: 'Orgue', program: 16, emoji: '🎼', gmName: 'Drawbar Organ' }
 };
 
-/**
- * Initialisation de l'application
- * Appelée au chargement de la page
- */
 function init() {
-    // Crée les instances
     parser = new Parser();
     renderer = new Renderer();
     midiExporter = new MidiExporter();
     midiAudioPlayer = new MidiAudioPlayer();
 
-    // Récupère les éléments DOM
     const btnRender = document.getElementById('btn-render');
     const btnExample = document.getElementById('btn-example');
     const btnClear = document.getElementById('btn-clear');
@@ -51,10 +43,8 @@ function init() {
     const btnPlay = document.getElementById('btn-play');
     const audioElement = document.getElementById('midi-player');
 
-    // Initialise le lecteur audio
     midiAudioPlayer.init(audioElement, midiExporter);
 
-    // Écoute les événements de l'élément audio pour mettre à jour le bouton
     audioElement.addEventListener('play', () => {
         btnPlay.textContent = '⏹️ Arrêter';
     });
@@ -69,7 +59,6 @@ function init() {
         btnPlay.textContent = '🎵 Lire la partition';
     });
 
-    // Attache les événements
     btnRender.addEventListener('click', handleRender);
     btnExample.addEventListener('click', handleExample);
     btnClear.addEventListener('click', handleClear);
@@ -77,14 +66,13 @@ function init() {
     btnExportMIDI.addEventListener('click', handleExportMIDI);
     btnPlay.addEventListener('click', handlePlay);
 
-    // Permet de générer avec Ctrl+Enter dans le textarea
+    // Ctrl+Enter as keyboard shortcut for rendering
     textarea.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             handleRender();
         }
     });
 
-    // Gestion de la modale d'instruments
     const instrumentModal = document.getElementById('instrument-modal');
     const btnCancelInstrument = document.getElementById('btn-cancel-instrument');
     const btnValidateInstruments = document.getElementById('btn-validate-instruments');
@@ -98,7 +86,6 @@ function init() {
         }
     });
 
-    // Gestion de la modale de transposition
     const transposeModal = document.getElementById('transpose-modal');
     const btnAdvanced = document.getElementById('btn-advanced');
     const btnCancelTranspose = document.getElementById('btn-cancel-transpose');
@@ -155,19 +142,14 @@ function init() {
     console.log('✅ Application initialisée');
 }
 
-/**
- * Gère le clic sur "Générer la partition"
- */
 function handleRender() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
 
-    // Cache les erreurs précédentes
     errorDiv.style.display = 'none';
 
     try {
-        // Parse le texte saisi
         const text = textarea.value.trim();
 
         if (!text) {
@@ -177,46 +159,35 @@ function handleRender() {
         const scoreData = parser.parse(text);
         console.log('✅ Partition parsée:', scoreData);
 
-        // Stocke les données pour l'export
         currentScoreData = scoreData;
 
-        // Rend la partition
         renderer.setOptimizationMode(true);
         renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
         renderer.setOptimizationMode(false);
         console.log('✅ Partition rendue');
 
-        // Active les boutons d'export et de lecture
         setExportButtonState(true);
         setPlayButtonState(true);
 
     } catch (error) {
-        // Affiche l'erreur
         console.error('❌ Erreur:', error.message);
         errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
 
-        // Désactive les boutons d'export et de lecture en cas d'erreur
         setExportButtonState(false);
         setPlayButtonState(false);
 
-        // Scroll vers l'erreur
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
-/**
- * Gère le clic sur "Charger un exemple"
- */
 function handleExample() {
     const textarea = document.getElementById('partition-input');
 
-    // Demande confirmation si le textarea n'est pas vide
     if (textarea.value.trim() && !confirm('Voulez-vous remplacer le contenu actuel par un exemple ?')) {
         return;
     }
 
-    // Charge un exemple
     const example = `Au clair de la lune
 120
 4/4
@@ -228,28 +199,21 @@ Do Mi Re Re Do2`;
 
     textarea.value = example;
 
-    // Génère automatiquement
     handleRender();
 }
 
-/**
- * Gère le clic sur "Effacer"
- */
 function handleClear() {
     const textarea = document.getElementById('partition-input');
     const outputDiv = document.getElementById('render-output');
     const errorDiv = document.getElementById('error-message');
 
-    // Demande confirmation
     if (textarea.value.trim() && !confirm('Voulez-vous vraiment effacer la partition ?')) {
         return;
     }
 
-    // Efface tout
     textarea.value = '';
     errorDiv.style.display = 'none';
 
-    // Nettoie le container de manière sécurisée
     while (outputDiv.firstChild) {
         outputDiv.removeChild(outputDiv.firstChild);
     }
@@ -258,20 +222,14 @@ function handleClear() {
     placeholder.textContent = 'Cliquez sur "Générer la partition" pour voir le rendu graphique';
     outputDiv.appendChild(placeholder);
 
-    currentScoreData = null; // Efface les données stockées
+    currentScoreData = null;
 
-    // Désactive les boutons d'export et de lecture
     setExportButtonState(false);
     setPlayButtonState(false);
 
-    // Focus sur le textarea
     textarea.focus();
 }
 
-/**
- * Gère le clic sur "Exporter en PNG"
- * Convertit le canvas en image PNG et déclenche le téléchargement
- */
 function handleExportPNG() {
     const canvas = document.getElementById('score-canvas');
     const errorDiv = document.getElementById('error-message');
@@ -316,10 +274,6 @@ function handleExportPNG() {
     }
 }
 
-/**
- * Gère le clic sur "Exporter en MIDI"
- * Affiche la modale de sélection d'instrument
- */
 function handleExportMIDI() {
     const errorDiv = document.getElementById('error-message');
 
@@ -333,9 +287,6 @@ function handleExportMIDI() {
     showInstrumentModal();
 }
 
-/**
- * Gère le clic sur "Lire la partition" / "Arrêter"
- */
 function handlePlay() {
     const btnPlay = document.getElementById('btn-play');
     const errorDiv = document.getElementById('error-message');
@@ -363,9 +314,6 @@ function handlePlay() {
     }
 }
 
-/**
- * Active ou désactive les boutons d'export (PNG et MIDI)
- */
 function setExportButtonState(enabled) {
     const btnExportPNG = document.getElementById('btn-export-png');
     const btnExportMIDI = document.getElementById('btn-export-midi');
@@ -377,9 +325,6 @@ function setExportButtonState(enabled) {
     }
 }
 
-/**
- * Active ou désactive le bouton de lecture
- */
 function setPlayButtonState(enabled) {
     const btnPlay = document.getElementById('btn-play');
     if (btnPlay) {
@@ -387,9 +332,6 @@ function setPlayButtonState(enabled) {
     }
 }
 
-/**
- * Affiche la modale de sélection d'instrument
- */
 function showInstrumentModal() {
     const modal = document.getElementById('instrument-modal');
     const grid = document.getElementById('instrument-grid');
@@ -428,9 +370,6 @@ function showInstrumentModal() {
     }
 }
 
-/**
- * Gère le toggle d'un instrument dans la sélection multiple
- */
 function toggleInstrumentSelection(instrumentKey, button, checkbox) {
     if (selectedInstruments.has(instrumentKey)) {
         selectedInstruments.delete(instrumentKey);
@@ -443,9 +382,6 @@ function toggleInstrumentSelection(instrumentKey, button, checkbox) {
     }
 }
 
-/**
- * Gère la validation de la sélection multiple d'instruments
- */
 function handleValidateInstruments() {
     const errorDiv = document.getElementById('error-message');
 
@@ -516,17 +452,11 @@ function handleValidateInstruments() {
     }
 }
 
-/**
- * Ferme la modale de sélection d'instrument
- */
 function closeInstrumentModal() {
     const modal = document.getElementById('instrument-modal');
     modal.style.display = 'none';
 }
 
-/**
- * Gère l'application de la transposition et génération
- */
 function handleApplyTranspose() {
     const textarea = document.getElementById('partition-input');
     const errorDiv = document.getElementById('error-message');
@@ -590,9 +520,6 @@ function handleApplyTranspose() {
     }
 }
 
-/**
- * Affiche la modale de transposition
- */
 function showTransposeModal() {
     const modal = document.getElementById('transpose-modal');
     const input = document.getElementById('transpose-semitones');
@@ -602,14 +529,10 @@ function showTransposeModal() {
     input.focus();
 }
 
-/**
- * Ferme la modale de transposition
- */
 function closeTransposeModal() {
     const modal = document.getElementById('transpose-modal');
     modal.style.display = 'none';
 }
 
-// Lance l'initialisation au chargement de la page
-// DOMContentLoaded s'assure que le DOM est prêt avant d'exécuter le code
+// DOMContentLoaded ensures the DOM is ready before running init
 document.addEventListener('DOMContentLoaded', init);
