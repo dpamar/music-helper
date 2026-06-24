@@ -87,14 +87,18 @@ class Parser {
 		
 		// Ajout des notes
 		for (const note of scoreData.notes){
-                    result += this[note.type + "ToText"](note) + " ";
+                    const methodName = note.type + "ToText";
+                    if (typeof this[methodName] !== 'function') {
+                        throw new Error('Unknown note type: ' + note.type);
+                    }
+                    result += this[methodName](note) + " ";
                 }
         return result;
     }
 
     restToText(rest) {
         var result = "S";
-        if (rest.duration != 1) {
+        if (rest.duration !== 1) {
             result += rest.duration;
         }
         return result;
@@ -110,7 +114,7 @@ class Parser {
                 duration: 1
             }).replace(/\d+\.?\d*$/, '');
         }
-        if (chord.duration != 1) {
+        if (chord.duration !== 1) {
             result += chord.duration;
         }
         return result;
@@ -119,7 +123,11 @@ class Parser {
     noteToText(note) {
         var result = "";
         // La note
-        result += this.reverseNoteMapping[note.note];
+        const noteName = this.reverseNoteMapping[note.note];
+        if (!noteName) {
+            throw new Error('Unknown note: ' + note.note);
+        }
+        result += noteName;
 
         // L'altération
         switch(note.alteration) {
