@@ -93,9 +93,32 @@ class Parser {
     }
 
     restToText(rest) {
+		return "S" + rest.duration
     }
 
     chordToText(chord) {
+		var result = ''
+		for (const note of chord.notes) {
+			result += this.reverseNoteMapping[note.note];
+		
+
+			// L'altération
+			switch(note.alteration) {
+				case 'flat' : result += 'b'; break;
+				case 'sharp': result += '#'; break;
+				case 'natural': result += '*'; break;
+			}
+
+			// L'octave
+			if (note.octave < 0) {
+            result += '-'.repeat(-note.octave);
+			} else if (note.octave >0) {
+				result += '+'.repeat(note.octave);
+			}
+			
+		}
+		result += chord.duration
+		return result
     }
 
     noteToText(note) {
