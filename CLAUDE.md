@@ -417,6 +417,30 @@ Les fichiers MIDI générés (Format 0 et Format 1) sont compatibles avec :
 - ⚠️ Maximum 16 instruments simultanés (limitation MIDI)
 - ⚠️ Toutes les pistes jouent les mêmes notes (pas de polyphonie réelle avec notes différentes)
 
+## ⚙️ Mode d'optimisation de l'armure
+
+L'application dispose d'un mode d'optimisation qui trouve automatiquement la meilleure armure à la clef pour minimiser les altérations accidentelles sur la partition.
+
+### Fonctionnement
+
+1. **Activation** : Checkbox dans la modale "Options avancées" (bouton ⚙️)
+2. **État par défaut** : Activé (coché)
+3. **Algorithme** : Teste les 15 armures possibles (0 à 7 dièses, 0 à 7 bémols), choisit celle qui minimise les altérations dans les mesures
+4. **Impact** : 
+   - Activé : `optimizeKeySignature()` est appelé avant le rendu
+   - Désactivé : L'armure saisie par l'utilisateur est conservée telle quelle
+
+### Cas d'usage
+
+- **Optimisation ON** (recommandé) : Pour les partitions sans armure définie ou pour trouver automatiquement la tonalité optimale
+- **Optimisation OFF** : Pour conserver l'armure exacte spécifiée par l'utilisateur (respect strict de la saisie)
+
+### Architecture
+
+- **Méthode** : `Renderer.optimizeKeySignature(scoreData)` → retourne un nouveau `scoreData` avec l'armure optimisée
+- **État** : `Renderer.setOptimizationMode(boolean)` → contrôle le mode pendant le rendu
+- **UI** : Checkbox `#optimization-mode` dans `#transpose-modal`
+
 ## 🔧 Comment ajouter une fonctionnalité
 
 ### Ajouter un nouveau symbole musical
@@ -557,6 +581,7 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - ✅ ~~Bémols non reconnus (Mib)~~ → Corrigé
 - ⚠️ Barres de mesure : calculées sur 4 temps fixes (ne s'adapte pas au chiffrage)
 - ⚠️ Pas de validation de la cohérence des mesures (sous-remplies ou sur-remplies)
+- ℹ️ L'optimisation de l'armure est activée par défaut mais peut être désactivée dans les options avancées
 - ✅ ~~Pas de support multi-voix~~ → Implémenté via export MIDI multi-pistes (Format 1)
 - ✅ ~~Pas d'export PNG~~ → Implémenté
 - ✅ ~~Pas d'export MIDI~~ → Implémenté
