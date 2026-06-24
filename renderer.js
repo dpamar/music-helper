@@ -28,7 +28,8 @@ class Renderer {
         this.drawingInfo = {
             optimizationMode: false,
             fakeMode: false,
-            alterationCount: 0
+            alterationCount: 0,
+            lastScore: {}
         };
     }
 
@@ -59,6 +60,7 @@ class Renderer {
         }
 
         this.drawingInfo.alterationCount = 0;
+        this.lastScore = {};
 
         this.drawTitle(ctx, scoreData.title, width);
         this.drawMetadata(ctx, scoreData, width);
@@ -130,6 +132,7 @@ class Renderer {
      * @private
      */
     drawTitle(ctx, title, canvasWidth) {
+        this.drawingInfo.lastScore.title = title;
         if (this.drawingInfo.fakeMode || !title || title.trim() === '') {
             return;
         }
@@ -150,6 +153,7 @@ class Renderer {
      * @private
      */
     drawMetadata(ctx, scoreData, canvasWidth) {
+        this.drawingInfo.lastScore.tempo = scoreData.tempo;
         if (this.drawingInfo.fakeMode) {
             return;
         }
@@ -197,6 +201,7 @@ class Renderer {
      * @private
      */
     drawClef(ctx, clef) {
+        this.drawingInfo.lastScore.clef = clef;
         if (this.drawingInfo.fakeMode) {
             return;
         }
@@ -224,6 +229,7 @@ class Renderer {
      * @private
      */
     drawKeySignature(ctx, keySignature, startX, clef) {
+        this.drawingInfo.lastScore.keySignature = keySignature;
         if (this.drawingInfo.fakeMode) {
             return;
         }
@@ -262,6 +268,7 @@ class Renderer {
      * @private
      */
     drawTimeSignature(ctx, timeSignature, startX) {
+        this.drawingInfo.lastScore.timeSignature = { numerator: timeSignature.numerator, denominator: timeSignature.denominator };
         if (this.drawingInfo.fakeMode) {
             return;
         }
@@ -292,6 +299,8 @@ class Renderer {
      * @private
      */
     drawNotes(ctx, notes, timeSignature, startX, clef, signatures) {
+        this.drawingInfo.lastScore.notes = [];
+
         let x = startX;
         let currentStaffY = this.config.marginTop;
         let staffCount = 0;
@@ -363,6 +372,14 @@ class Renderer {
         var effectiveNote = { note: note.note, alteration: note.alteration, octave: note.octave };
         effectiveNote = this.getBestRepresentation(effectiveNote, signatures);
 
+        this.drawingInfo.lastScore.notes.push({
+            note: effectiveNote.note,
+            alteration: effectiveNote.alteration,
+            octave: effectiveNote.octave,
+            type: 'note',
+            duration: note.duration
+        });
+
         const basePosition = this.notePositions[effectiveNote.note][clef];
         const position = basePosition + (effectiveNote.octave * 7);
         const y = this.getYPosition(position, staffY);
@@ -395,6 +412,12 @@ class Renderer {
     drawChord(ctx, chord, x, clef, signatures, staffY = null, durationModification = null) {
         const duration = durationModification || chord.duration;
 
+        var chordData;
+        this.drawingInfo.lastScore.notes.push(chordData = {
+            type: 'chord',
+            duration: 'duration',
+            notes: []
+        });
         var firstNote = null;
         var firstNotePosition = 0;
         for (const note of chord.notes) {
@@ -416,6 +439,7 @@ class Renderer {
             }
 
             this.handleAlteration(ctx, x, y, effectiveNote, signatures);
+            chordData.notes.push(effectiveNote);
         }
 
         const basePosition = this.notePositions[firstNote.note][clef];
@@ -440,6 +464,10 @@ class Renderer {
      * @private
      */
     drawRest(ctx, rest, x, staffY = null) {
+        this.drawingInfo.lastScore.notes.push({
+            type: 'rest',
+            duration: rest.duration
+        });
         if (this.drawingInfo.fakeMode) {
             return;
         }
