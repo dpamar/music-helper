@@ -169,7 +169,6 @@ function handleRender() {
 
         renderer.setOptimizationMode(optimizationEnabled);
         renderer.render(dataToRender, outputDiv);
-        alert(renderer.drawingInfo.lastScore);
         renderer.setOptimizationMode(false);
         console.log(`✅ Partition rendue (optimization: ${optimizationEnabled ? 'ON' : 'OFF'})`);
 
