@@ -51,9 +51,8 @@ class Parser {
         const { clef, keySignature } = this.parseClefAndKey(lines[3]);
 
         // Parse les notes (toutes les lignes après la ligne 4)
-		const signaturesMap = this.getSignaturesMap(keySignature);
         const noteLines = lines.slice(4).filter(line => line.length > 0);
-        const notes = this.parseNotes(noteLines.join(' '), signaturesMap);
+        const notes = this.parseNotes(noteLines.join(' '), this.getSignaturesMap(keySignature));
 
         return {
             title,
@@ -61,8 +60,7 @@ class Parser {
             timeSignature,
             clef,
             keySignature,
-            notes,
-			signaturesMap
+            notes
         };
     }
 	
@@ -79,9 +77,8 @@ class Parser {
 		const timeSignature = scoreData.timeSignature;
 		const clef = scoreData.clef;
 		const keySignature = scoreData.keySignature;
-		const signaturesMap = scoreData.signaturesMap;
 
-		const notes = this.transposeNotes(scoreData.notes, signaturesMap, numberOfHalfTones);
+		const notes = this.transposeNotes(scoreData.notes, this.getSignaturesMap(keySignature), numberOfHalfTones);
 		
 
         return {
@@ -90,8 +87,7 @@ class Parser {
             timeSignature,
             clef,
             keySignature,
-            notes,
-			signaturesMap
+            notes
         };
 	}
 	

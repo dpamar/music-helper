@@ -181,7 +181,9 @@ function handleRender() {
         currentScoreData = scoreData;
 
         // Rend la partition
-        renderer.render(scoreData, outputDiv);
+        renderer.setOptimizationMode(true);
+        renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
+        renderer.setOptimizationMode(false);
         console.log('✅ Partition rendue');
 
         // Active les boutons d'export et de lecture
@@ -553,7 +555,9 @@ function handleApplyTranspose() {
 
         currentScoreData = scoreData;
 
-        renderer.render(scoreData, outputDiv);
+        renderer.setOptimizationMode(true);
+        renderer.render(renderer.optimizeKeySignature(scoreData), outputDiv);
+        renderer.setOptimizationMode(false);
         console.log('✅ Partition rendue');
 
         setExportButtonState(true);
