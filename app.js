@@ -460,7 +460,7 @@ function handleJazzArrange() {
 
         const jazzScore = jazzTransformer.transform(currentScoreData);
 
-        if (!jazzScore.title.includes('(Jazz)')) {
+        if (!jazzScore.title.includes('(Jazz Arrangement)')) {
             jazzScore.title = jazzScore.title + ' (Jazz Arrangement)';
         }
 

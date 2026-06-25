@@ -63,7 +63,8 @@ class JazzTransformer {
 
         for (const note of notes) {
             if (note.duration === 0.5) {
-                const swungNote = JSON.parse(JSON.stringify(note));
+                // Shallow copy sufficient since duration is a primitive
+                const swungNote = { ...note };
 
                 if (isFirstOfPair) {
                     swungNote.duration = this.config.swingRatio;
@@ -74,7 +75,7 @@ class JazzTransformer {
                 swungNotes.push(swungNote);
                 isFirstOfPair = !isFirstOfPair;
             } else {
-                swungNotes.push(JSON.parse(JSON.stringify(note)));
+                swungNotes.push({ ...note });
                 isFirstOfPair = true;
             }
         }
@@ -100,9 +101,10 @@ class JazzTransformer {
 
         return notes.map(item => {
             if (item.type !== 'chord') {
-                return JSON.parse(JSON.stringify(item));
+                return { ...item };
             }
 
+            // Deep copy needed because we'll modify chord.notes array
             const chord = JSON.parse(JSON.stringify(item));
 
             if (chord.notes.length !== 3) {
@@ -112,10 +114,13 @@ class JazzTransformer {
             const root = chord.notes[0];
             const rootStep = noteSteps[root.note];
 
+            // Major 7th is 11 semitones above root
             const seventhStep = (rootStep + 11) % 12;
             const seventhNote = stepsToNote[seventhStep];
 
             if (seventhNote) {
+                // Octave offset: 0 if 7th is in same octave, 1 if it wraps
+                // Example: C (0) + 11 = B (same octave), D (2) + 11 = C# (next octave)
                 chord.notes.push({
                     note: seventhNote,
                     alteration: '',
@@ -152,13 +157,12 @@ class JazzTransformer {
                     duration: silenceDuration
                 });
 
-                const syncopatedNote = JSON.parse(JSON.stringify(note));
-                syncopatedNote.duration = noteDuration;
+                const syncopatedNote = { ...note, duration: noteDuration };
                 syncopatedNotes.push(syncopatedNote);
 
                 console.log(`  → Syncopation: ${note.duration} → silence(${silenceDuration}) + note(${noteDuration})`);
             } else {
-                syncopatedNotes.push(JSON.parse(JSON.stringify(note)));
+                syncopatedNotes.push({ ...note });
             }
         }
 
