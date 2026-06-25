@@ -13,10 +13,10 @@ class JazzTransformer {
      */
     constructor() {
         this.config = {
-            swingRatio: 0.5,        // Ratio pour le swing (2/3 - 1/3)
-            syncopationProbability: 0.33,  // 30% de chances de syncopation
+            swingRatio: 0.67,        // Ratio pour le swing (2/3 - 1/3)
+            syncopationProbability: 0.3,  // 30% de chances de syncopation
             walkingBassEnabled: false,     // Walking bass (désactivé par défaut)
-            tempoMultiplier: 1.3     // Tempo légèrement plus rapide
+            tempoMultiplier: 1.1      // Tempo légèrement plus rapide
         };
     }
 
