@@ -35,6 +35,42 @@ class JazzTransformer {
         jazzScore.tempo = Math.round(scoreData.tempo * this.config.tempoMultiplier);
         console.log(`✅ Tempo ajusté: ${scoreData.tempo} → ${jazzScore.tempo} BPM`);
 
+        // 2. Appliquer le swing rhythm
+        jazzScore.notes = this.applySwing(jazzScore.notes);
+        console.log(`✅ Swing appliqué (ratio ${this.config.swingRatio})`);
+
         return jazzScore;
+    }
+
+    /**
+     * Applique le swing rhythm aux notes (shuffle des croches).
+     * Les croches (0.5) deviennent des triolets swing (alternance 0.67 / 0.33).
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @returns {Array} Notes avec swing appliqué
+     * @private
+     */
+    applySwing(notes) {
+        const swungNotes = [];
+        let isFirstOfPair = true;
+
+        for (const note of notes) {
+            if (note.duration === 0.5) {
+                const swungNote = JSON.parse(JSON.stringify(note));
+
+                if (isFirstOfPair) {
+                    swungNote.duration = this.config.swingRatio;
+                } else {
+                    swungNote.duration = Math.round((1 - this.config.swingRatio) * 100) / 100;
+                }
+
+                swungNotes.push(swungNote);
+                isFirstOfPair = !isFirstOfPair;
+            } else {
+                swungNotes.push(JSON.parse(JSON.stringify(note)));
+                isFirstOfPair = true;
+            }
+        }
+
+        return swungNotes;
     }
 }
