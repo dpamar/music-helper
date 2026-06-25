@@ -223,9 +223,40 @@ function init() {
         }
     });
 
+    // Jazz config modal
+    const jazzModal = document.getElementById('jazz-config-modal');
+    const applyJazzBtn = document.getElementById('apply-jazz-config');
+    const closeJazzBtn = document.getElementById('close-jazz-modal');
+
+    document.getElementById('swing-ratio').addEventListener('input', (e) => {
+        document.getElementById('swing-ratio-value').textContent = e.target.value;
+    });
+
+    document.getElementById('syncopation-prob').addEventListener('input', (e) => {
+        document.getElementById('syncopation-prob-value').textContent = e.target.value;
+    });
+
+    document.getElementById('tempo-mult').addEventListener('input', (e) => {
+        document.getElementById('tempo-mult-value').textContent = e.target.value;
+    });
+
+    applyJazzBtn.addEventListener('click', applyJazzTransformation);
+
+    closeJazzBtn.addEventListener('click', () => {
+        jazzModal.style.display = 'none';
+    });
+
+    jazzModal.addEventListener('click', (e) => {
+        if (e.target === jazzModal) {
+            jazzModal.style.display = 'none';
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (transposeModal.style.display === 'flex') {
+            if (jazzModal.style.display === 'flex') {
+                jazzModal.style.display = 'none';
+            } else if (transposeModal.style.display === 'flex') {
                 closeTransposeModal();
             } else if (instrumentModal.style.display === 'flex') {
                 closeInstrumentModal();
@@ -443,8 +474,6 @@ function setPlayButtonState(enabled) {
 
 function handleJazzArrange() {
     const errorDiv = document.getElementById('error-message');
-    const outputDiv = document.getElementById('render-output');
-    const textarea = document.getElementById('partition-input');
 
     if (!currentScoreData) {
         errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
@@ -453,10 +482,32 @@ function handleJazzArrange() {
         return;
     }
 
+    const modal = document.getElementById('jazz-config-modal');
+    modal.style.display = 'flex';
+}
+
+function applyJazzTransformation() {
+    const errorDiv = document.getElementById('error-message');
+    const outputDiv = document.getElementById('render-output');
+    const textarea = document.getElementById('partition-input');
+    const modal = document.getElementById('jazz-config-modal');
+
     try {
         errorDiv.style.display = 'none';
 
-        console.log('🎷 Arrangement jazz demandé pour:', currentScoreData.title);
+        // Read config from UI
+        jazzTransformer.config.swingRatio = parseFloat(document.getElementById('swing-ratio').value);
+        jazzTransformer.config.syncopationProbability = parseFloat(document.getElementById('syncopation-prob').value);
+        jazzTransformer.config.tempoMultiplier = parseFloat(document.getElementById('tempo-mult').value);
+        jazzTransformer.config.walkingBassEnabled = document.getElementById('walking-bass-enabled').checked;
+        jazzTransformer.config.ghostNoteProbability = document.getElementById('ghost-notes-enabled').checked ? 0.3 : 0;
+
+        const extensions = [];
+        if (document.getElementById('ext-7th').checked) extensions.push('7th');
+        if (document.getElementById('ext-9th').checked) extensions.push('9th');
+        if (document.getElementById('ext-11th').checked) extensions.push('11th');
+        if (document.getElementById('ext-13th').checked) extensions.push('13th');
+        jazzTransformer.config.chordExtensions = extensions;
 
         const jazzScore = jazzTransformer.transform(currentScoreData);
 
@@ -470,9 +521,9 @@ function handleJazzArrange() {
         const jazzScoreText = scoreToText(jazzScore);
         textarea.value = jazzScoreText;
 
-        console.log('✅ Partition jazz rendue');
+        modal.style.display = 'none';
 
-        errorDiv.textContent = `✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM, Swing: activé)`;
+        errorDiv.textContent = `✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM)`;
         errorDiv.style.display = 'block';
         errorDiv.style.background = '#d4edda';
         errorDiv.style.color = '#155724';

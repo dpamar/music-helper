@@ -43,7 +43,8 @@ class Renderer {
      */
     render(scoreData, container) {
         const width = 1000;
-        const initialHeight = 480;
+        const hasMultiStaff = scoreData.bassLine && scoreData.bassLine.length > 0;
+        const initialHeight = hasMultiStaff ? 650 : 480;
 
         var ctx = null;
         var canvas = null;
@@ -76,9 +77,25 @@ class Renderer {
         currentX += 20;
         const finalHeight = this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
 
+        // Render bass staff if bassLine is present
+        let totalHeight = finalHeight;
+        if (hasMultiStaff) {
+            const bassStaffY = this.config.marginTop + 150;
+            this.drawStaff(ctx, 'fa', bassStaffY);
+            this.drawClefAt(ctx, 'fa', bassStaffY);
+
+            let bassX = this.config.staffStartX + this.config.clefWidth;
+            bassX = this.drawKeySignatureAt(ctx, scoreData.keySignature, bassX, 'fa', bassStaffY);
+            bassX = this.drawTimeSignatureAt(ctx, scoreData.timeSignature, bassX, bassStaffY);
+
+            bassX += 20;
+            const bassHeight = this.drawBassNotes(ctx, scoreData.bassLine, scoreData.timeSignature, bassX, bassStaffY, this.getSignaturesMap(scoreData.keySignature));
+            totalHeight = Math.max(totalHeight, bassHeight + 150);
+        }
+
         // Redimensionner le canvas si necessaire
-        if (!this.drawingInfo.fakeMode && canvas && finalHeight > initialHeight) {
-            canvas.height = finalHeight; // finalHeight inclut deja canvasBottomMargin (retour de drawNotes)
+        if (!this.drawingInfo.fakeMode && canvas && totalHeight > initialHeight) {
+            canvas.height = totalHeight;
 
             // Redessiner tout sur le canvas agrandi
             ctx = canvas.getContext('2d');
@@ -93,6 +110,19 @@ class Renderer {
 
             currentX += 20;
             this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
+
+            if (hasMultiStaff) {
+                const bassStaffY = this.config.marginTop + 150;
+                this.drawStaff(ctx, 'fa', bassStaffY);
+                this.drawClefAt(ctx, 'fa', bassStaffY);
+
+                let bassX = this.config.staffStartX + this.config.clefWidth;
+                bassX = this.drawKeySignatureAt(ctx, scoreData.keySignature, bassX, 'fa', bassStaffY);
+                bassX = this.drawTimeSignatureAt(ctx, scoreData.timeSignature, bassX, bassStaffY);
+
+                bassX += 20;
+                this.drawBassNotes(ctx, scoreData.bassLine, scoreData.timeSignature, bassX, bassStaffY, this.getSignaturesMap(scoreData.keySignature));
+            }
         }
     }
 
@@ -928,5 +958,144 @@ class Renderer {
      */
     isDotted(duration) {
         return [0.375, 0.75, 1.5, 3, 6].indexOf(duration) >= 0;
+    }
+
+    /**
+     * Dessine un symbole de clef a une position Y specifique.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {string} clef - "sol" ou "fa"
+     * @param {number} staffY - Position Y de la portee
+     * @returns {void}
+     * @private
+     */
+    drawClefAt(ctx, clef, staffY) {
+        if (this.drawingInfo.fakeMode) {
+            return;
+        }
+        const x = this.config.staffStartX + 10;
+
+        ctx.font = 'bold 60px serif';
+        ctx.fillStyle = '#000';
+
+        if (clef === 'sol') {
+            const y = staffY + (3 * this.config.staffLineSpacing);
+            ctx.fillText('𝄞', x, y + 5);
+        } else {
+            const y = staffY + (3 * this.config.staffLineSpacing);
+            ctx.fillText('𝄢', x, y + 2);
+        }
+    }
+
+    /**
+     * Dessine l'armure a une position Y specifique.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array} keySignature - Armure
+     * @param {number} startX - Position X de depart
+     * @param {string} clef - "sol" ou "fa"
+     * @param {number} staffY - Position Y de la portee
+     * @returns {number} Position X apres l'armure
+     * @private
+     */
+    drawKeySignatureAt(ctx, keySignature, startX, clef, staffY) {
+        if (this.drawingInfo.fakeMode) {
+            return startX;
+        }
+        let x = startX;
+
+        for (const alt of keySignature) {
+            let position = this.notePositions[alt.note][clef];
+
+            if (clef === 'sol' && alt.note !== 'A' && alt.note !== 'B') {
+                position += 7;
+            }
+
+            const y = this.getYPosition(position, staffY) + 5;
+
+            ctx.font = 'bold 20px serif';
+            ctx.fillStyle = '#000';
+
+            if (alt.alteration === 'sharp') {
+                ctx.fillText('♯', x, y);
+            } else if (alt.alteration === 'flat') {
+                ctx.fillText('♭', x, y);
+            }
+
+            x += 15;
+        }
+
+        return x;
+    }
+
+    /**
+     * Dessine le chiffrage de mesure a une position Y specifique.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Object} timeSignature - Chiffrage
+     * @param {number} startX - Position X de depart
+     * @param {number} staffY - Position Y de la portee
+     * @returns {number} Position X apres le chiffrage
+     * @private
+     */
+    drawTimeSignatureAt(ctx, timeSignature, startX, staffY) {
+        if (this.drawingInfo.fakeMode) {
+            return startX;
+        }
+        const y = staffY + (2 * this.config.staffLineSpacing);
+
+        ctx.font = 'bold 24px serif';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'center';
+
+        ctx.fillText(timeSignature.numerator.toString(), startX + 15, y - 10);
+        ctx.fillText(timeSignature.denominator.toString(), startX + 15, y + 20);
+
+        ctx.textAlign = 'left';
+
+        return startX + 40;
+    }
+
+    /**
+     * Dessine les notes de la ligne de basse sur une portee a position Y donnee.
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array} notes - Tableau de notes de basse
+     * @param {Object} timeSignature - Chiffrage de mesure
+     * @param {number} startX - Position X de depart
+     * @param {number} staffY - Position Y de la portee
+     * @param {Array} signatures - Map des alterations de l'armure
+     * @returns {number} Hauteur finale necessaire
+     * @private
+     */
+    drawBassNotes(ctx, notes, timeSignature, startX, staffY, signatures) {
+        let x = startX;
+        let beatsPerMesure = this.beatsPerMesure(timeSignature);
+        let remainingUntilMeasureBar = beatsPerMesure;
+
+        for (const item of notes) {
+            if (x > 850) {
+                break;
+            }
+
+            if (item.type === 'rest') {
+                x = this.drawRest(ctx, item, x, staffY);
+                remainingUntilMeasureBar -= item.duration;
+                if (remainingUntilMeasureBar <= 0) {
+                    remainingUntilMeasureBar = beatsPerMesure;
+                    this.drawBarline(ctx, x, staffY, false);
+                    x += this.config.noteWidth >> 1;
+                }
+            } else if (item.type === 'note') {
+                const noteBuffer = [];
+                this.drawNote(ctx, item, x, 'fa', signatures, staffY, null, noteBuffer);
+                x += this.config.noteWidth;
+                remainingUntilMeasureBar -= item.duration;
+                if (remainingUntilMeasureBar <= 0) {
+                    remainingUntilMeasureBar = beatsPerMesure;
+                    this.drawBarline(ctx, x, staffY, false);
+                    x += this.config.noteWidth >> 1;
+                }
+            }
+        }
+
+        this.drawBarline(ctx, x, staffY, true);
+        return staffY + (4 * this.config.staffLineSpacing) + this.config.canvasBottomMargin;
     }
 }
