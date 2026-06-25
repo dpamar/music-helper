@@ -612,7 +612,7 @@ class Renderer {
         ctx.lineTo(x + 11, y - 40);
         ctx.stroke();
 
-        if (duration <= 0.5) {
+        if (duration <= 0.75) {
             ctx.beginPath();
             ctx.moveTo(x + 11, y - 40);
             ctx.quadraticCurveTo(x + 20, y - 35, x + 18, y - 30);
