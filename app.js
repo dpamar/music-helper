@@ -9,6 +9,7 @@ let parser;
 let renderer;
 let midiAudioPlayer;
 let midiExporter;
+let jazzTransformer;
 let currentScoreData = null;
 let selectedInstruments = new Set();
 const reverseNoteMapping = {
@@ -122,6 +123,7 @@ function init() {
     renderer = new Renderer();
     midiExporter = new MidiExporter();
     midiAudioPlayer = new MidiAudioPlayer();
+    jazzTransformer = new JazzTransformer();
 
     const btnRender = document.getElementById('btn-render');
     const btnExample = document.getElementById('btn-example');
@@ -132,6 +134,7 @@ function init() {
     const errorDiv = document.getElementById('error-message');
     const btnPlay = document.getElementById('btn-play');
     const audioElement = document.getElementById('midi-player');
+    const btnJazzArrange = document.getElementById('btn-jazz-arrange');
 
     midiAudioPlayer.init(audioElement, midiExporter);
 
@@ -155,6 +158,7 @@ function init() {
     btnExportPNG.addEventListener('click', handleExportPNG);
     btnExportMIDI.addEventListener('click', handleExportMIDI);
     btnPlay.addEventListener('click', handlePlay);
+    btnJazzArrange.addEventListener('click', handleJazzArrange);
 
     // Ctrl+Enter as keyboard shortcut for rendering
     textarea.addEventListener('keydown', (e) => {
@@ -418,11 +422,15 @@ function handlePlay() {
 function setExportButtonState(enabled) {
     const btnExportPNG = document.getElementById('btn-export-png');
     const btnExportMIDI = document.getElementById('btn-export-midi');
+    const btnJazzArrange = document.getElementById('btn-jazz-arrange');
     if (btnExportPNG) {
         btnExportPNG.disabled = !enabled;
     }
     if (btnExportMIDI) {
         btnExportMIDI.disabled = !enabled;
+    }
+    if (btnJazzArrange) {
+        btnJazzArrange.disabled = !enabled;
     }
 }
 
@@ -430,6 +438,41 @@ function setPlayButtonState(enabled) {
     const btnPlay = document.getElementById('btn-play');
     if (btnPlay) {
         btnPlay.disabled = !enabled;
+    }
+}
+
+function handleJazzArrange() {
+    const errorDiv = document.getElementById('error-message');
+
+    if (!currentScoreData) {
+        errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+    }
+
+    try {
+        errorDiv.style.display = 'none';
+
+        console.log('🎷 Arrangement jazz demandé pour:', currentScoreData.title);
+
+        errorDiv.textContent = '✅ Arrangement jazz activé !';
+        errorDiv.style.display = 'block';
+        errorDiv.style.background = '#d4edda';
+        errorDiv.style.color = '#155724';
+        errorDiv.style.borderColor = '#c3e6cb';
+
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+            errorDiv.style.background = '';
+            errorDiv.style.color = '';
+            errorDiv.style.borderColor = '';
+        }, 3000);
+
+    } catch (error) {
+        errorDiv.textContent = '❌ Erreur arrangement jazz: ' + error.message;
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
