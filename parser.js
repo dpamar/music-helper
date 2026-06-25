@@ -185,7 +185,7 @@ class Parser {
      * @throws {Error} Si le token est invalide ou la duree n'est pas un nombre
      */
     parseNoteOrChord(noteStr, signatures) {
-        const notePattern = /(do|ré|re|mi|fa|sol|la|si)(#|b|\*)?(--|-|\+|\+\+)?/gi;
+        const notePattern = /(do|ré|re|mi|fa|sol|la|si)(#|b|\*)?(--|-|\+\+|\+)?/gi;
         const matches = [...noteStr.matchAll(notePattern)];
 
         if (matches.length === 0) {
