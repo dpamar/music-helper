@@ -43,6 +43,10 @@ class JazzTransformer {
         jazzScore.notes = this.enrichChords(jazzScore.notes);
         console.log(`✅ Accords enrichis (7ème ajoutée)`);
 
+        // 4. Appliquer la syncopation
+        jazzScore.notes = this.applySyncopation(jazzScore.notes);
+        console.log(`✅ Syncopation appliquée (prob: ${this.config.syncopationProbability})`);
+
         return jazzScore;
     }
 
@@ -123,5 +127,41 @@ class JazzTransformer {
 
             return chord;
         });
+    }
+
+    /**
+     * Applique une syncopation légère aux notes.
+     * Certaines notes sont décalées avec un court silence devant.
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @returns {Array} Notes avec syncopation appliquée
+     * @private
+     */
+    applySyncopation(notes) {
+        const syncopatedNotes = [];
+
+        for (const note of notes) {
+            const canSyncopate = (note.duration === 1.0 || note.duration === 2.0) &&
+                                  note.type !== 'rest';
+
+            if (canSyncopate && Math.random() < this.config.syncopationProbability) {
+                const silenceDuration = note.duration * 0.25;
+                const noteDuration = note.duration * 0.75;
+
+                syncopatedNotes.push({
+                    type: 'rest',
+                    duration: silenceDuration
+                });
+
+                const syncopatedNote = JSON.parse(JSON.stringify(note));
+                syncopatedNote.duration = noteDuration;
+                syncopatedNotes.push(syncopatedNote);
+
+                console.log(`  → Syncopation: ${note.duration} → silence(${silenceDuration}) + note(${noteDuration})`);
+            } else {
+                syncopatedNotes.push(JSON.parse(JSON.stringify(note)));
+            }
+        }
+
+        return syncopatedNotes;
     }
 }
