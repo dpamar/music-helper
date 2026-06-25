@@ -332,10 +332,12 @@ class Renderer {
                 let drawer = item.type === 'note' ? "drawNote" : "drawChord";
 
                 let remainingItemDuration = item.duration;
+                let noteBuffer = this.drawingInfo.lastScore.notes;
                 while (remainingItemDuration >= remainingUntilMeasureBar) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
-                    let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingUntilMeasureBar);
+                    let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingUntilMeasureBar, noteBuffer);
+                    noteBuffer = [];
                     x = notePosition.x;
                     noteY = notePosition.y;
                     remainingItemDuration -= remainingUntilMeasureBar;
@@ -347,7 +349,8 @@ class Renderer {
                 if (remainingItemDuration > 0) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
-                    let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingItemDuration);
+                    let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingItemDuration, noteBuffer);
+                    noteBuffer = [];
                     x = notePosition.x;
                     noteY = notePosition.y;
                     remainingUntilMeasureBar -= remainingItemDuration;
@@ -395,7 +398,7 @@ class Renderer {
      * @returns {{x: number, y: number}} Nouvelle position X et Y de la note
      * @private
      */
-    drawNote(ctx, note, x, clef, signatures, staffY = null, durationModification = null) {
+    drawNote(ctx, note, x, clef, signatures, staffY = null, durationModification = null, noteBuffer = []) {
         var effectiveNote = { note: note.note, alteration: note.alteration, octave: note.octave };
         effectiveNote = this.getBestRepresentation(effectiveNote, signatures);
 
@@ -413,7 +416,7 @@ class Renderer {
             this.drawNoteStem(ctx, x, y, duration);
         }
 
-        this.drawingInfo.lastScore.notes.push({
+        noteBuffer.push({
             note: effectiveNote.note,
             alteration: effectiveAlteration,
             octave: effectiveNote.octave,
@@ -436,11 +439,11 @@ class Renderer {
      * @returns {{x: number, y: number}} Nouvelle position X et Y
      * @private
      */
-    drawChord(ctx, chord, x, clef, signatures, staffY = null, durationModification = null) {
+    drawChord(ctx, chord, x, clef, signatures, staffY = null, durationModification = null, noteBuffer = []) {
         const duration = durationModification || chord.duration;
 
         var chordData;
-        this.drawingInfo.lastScore.notes.push(chordData = {
+        noteBuffer.push(chordData = {
             type: 'chord',
             duration: chord.duration,
             notes: []

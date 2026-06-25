@@ -275,7 +275,7 @@ function handleRender() {
         setPlayButtonState(true);
 
     } catch (error) {
-        console.error('❌ Erreur:', error.message);
+        console.error('❌ Erreur:', error);
         errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
 
@@ -412,7 +412,7 @@ function handlePlay() {
         }
 
     } catch (error) {
-        console.error('❌ Erreur lecture:', error.message);
+        console.error('❌ Erreur lecture:', error);
         errorDiv.textContent = '❌ ' + error.message;
         errorDiv.style.display = 'block';
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
