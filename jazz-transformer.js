@@ -45,17 +45,11 @@ class JazzTransformer {
         const detectedKey = this.detectKey(jazzScore.notes);
         console.log(`✅ Tonalité détectée: ${detectedKey.tonic} ${detectedKey.mode}`);
 
-        if (detectedKey.mode === 'minor') {
-            this.config.chordExtensions = this.config.chordExtensions.includes('11th')
-                ? this.config.chordExtensions
-                : [...new Set([...this.config.chordExtensions, '7th'])];
-        }
-
-        // 4. Enrichir les accords
+        // 4. Enrichir les accords (sans muter config)
         jazzScore.notes = this.enrichChords(jazzScore.notes);
         console.log(`✅ Accords enrichis (extensions: ${this.config.chordExtensions.join(', ')})`);
 
-        // 4. Appliquer la syncopation
+        // 5. Appliquer la syncopation
         jazzScore.notes = this.applySyncopation(jazzScore.notes);
         console.log(`✅ Syncopation appliquée (prob: ${this.config.syncopationProbability})`);
 
@@ -241,7 +235,7 @@ class JazzTransformer {
             decorated.push({ ...note });
 
             const canAddGhost = note.type === 'note' &&
-                               note.duration >= 0.5 &&
+                               note.duration > 0.5 &&
                                i < notes.length - 1;
 
             if (canAddGhost && Math.random() < this.config.ghostNoteProbability) {
@@ -361,12 +355,31 @@ class JazzTransformer {
             const root = chord.notes[0];
             const rootStep = noteSteps[root.note];
 
+            // Guard against undefined rootStep
+            if (rootStep === undefined) {
+                console.warn(`Walking bass: unknown root note ${root.note}`);
+                continue;
+            }
+
             const numBeats = Math.floor(chord.duration);
+
+            // Detect chord quality for correct third
+            let thirdInterval = 4; // Major third by default
+            if (chord.notes.length >= 2) {
+                const third = chord.notes[1];
+                const thirdStep = noteSteps[third.note];
+                if (thirdStep !== undefined) {
+                    const interval = (thirdStep - rootStep + 12) % 12;
+                    if (interval === 3) {
+                        thirdInterval = 3; // Minor third
+                    }
+                }
+            }
 
             // Pattern: root, third, fifth, chromatic approach to next root
             const chordTones = [
                 root.note,
-                stepsToNote[(rootStep + 4) % 12],
+                stepsToNote[(rootStep + thirdInterval) % 12],
                 stepsToNote[(rootStep + 7) % 12]
             ];
 

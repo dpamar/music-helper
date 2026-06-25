@@ -80,7 +80,7 @@ class Renderer {
         // Render bass staff if bassLine is present
         let totalHeight = finalHeight;
         if (hasMultiStaff) {
-            const bassStaffY = this.config.marginTop + 150;
+            const bassStaffY = finalHeight + 20;
             this.drawStaff(ctx, 'fa', bassStaffY);
             this.drawClefAt(ctx, 'fa', bassStaffY);
 
@@ -109,10 +109,10 @@ class Renderer {
             currentX = this.drawTimeSignature(ctx, scoreData.timeSignature, currentX);
 
             currentX += 20;
-            this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
+            const redrawHeight = this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
 
             if (hasMultiStaff) {
-                const bassStaffY = this.config.marginTop + 150;
+                const bassStaffY = redrawHeight + 20;
                 this.drawStaff(ctx, 'fa', bassStaffY);
                 this.drawClefAt(ctx, 'fa', bassStaffY);
 
