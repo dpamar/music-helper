@@ -510,3 +510,31 @@ button {
     line-height: 1.4;
     padding-left: 26px;
 }
+
+/* ============================================================================
+   JAZZ ARRANGEMENT BUTTON
+   ============================================================================ */
+
+.btn-secondary#btn-jazz-arrange {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+}
+
+.btn-secondary#btn-jazz-arrange:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 16px rgba(245, 87, 108, 0.3);
+}
+
+.btn-secondary#btn-jazz-arrange:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary#btn-jazz-arrange:disabled {
+    background: linear-gradient(135deg, #ccc 0%, #999 100%);
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
