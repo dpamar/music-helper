@@ -28,7 +28,13 @@ class JazzTransformer {
     transform(scoreData) {
         console.log('🎷 Transformation jazz en cours...');
 
-        // Pour l'instant, retourne une copie sans modification
-        return JSON.parse(JSON.stringify(scoreData));
+        // Copie profonde pour ne pas modifier l'original
+        const jazzScore = JSON.parse(JSON.stringify(scoreData));
+
+        // 1. Ajuster le tempo (10% plus rapide, typique du jazz)
+        jazzScore.tempo = Math.round(scoreData.tempo * this.config.tempoMultiplier);
+        console.log(`✅ Tempo ajusté: ${scoreData.tempo} → ${jazzScore.tempo} BPM`);
+
+        return jazzScore;
     }
 }
