@@ -538,3 +538,44 @@ button {
     cursor: not-allowed;
     opacity: 0.6;
 }
+
+/* ============================================================================
+   JAZZ CONFIGURATION MODAL
+   ============================================================================ */
+
+.jazz-modal {
+    max-width: 500px;
+}
+
+.jazz-option-group {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.jazz-option-group h3 {
+    font-size: 1rem;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.jazz-option-group label {
+    display: block;
+    margin: 8px 0;
+    font-weight: 500;
+    color: #333;
+}
+
+.jazz-option-group input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+    accent-color: #667eea;
+}
+
+.jazz-option-desc {
+    font-size: 0.8rem;
+    color: #666;
+    margin: 4px 0 0 0;
+    font-style: italic;
+}
