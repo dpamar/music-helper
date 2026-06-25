@@ -12,7 +12,8 @@ class Renderer {
             marginLeft: 50,
             marginTop: 100,
             staffStartX: 80,
-            clefWidth: 60
+            clefWidth: 60,
+            canvasBottomMargin: 50  // Marge en bas du canvas pour eviter que la barre finale ne touche le bord
         };
 
         this.notePositions = {
@@ -42,18 +43,19 @@ class Renderer {
      */
     render(scoreData, container) {
         const width = 1000;
-        const height = 480;
+        const initialHeight = 480;
 
         var ctx = null;
+        var canvas = null;
         if (!this.drawingInfo.fakeMode) {
             while (container.firstChild) {
                 container.removeChild(container.firstChild);
             }
 
-            const canvas = document.createElement('canvas');
+            canvas = document.createElement('canvas');
             canvas.id = 'score-canvas';
             canvas.width = width;
-            canvas.height = height;
+            canvas.height = initialHeight;
 
             container.appendChild(canvas);
             ctx = canvas.getContext('2d');
@@ -72,7 +74,26 @@ class Renderer {
         currentX = this.drawTimeSignature(ctx, scoreData.timeSignature, currentX);
 
         currentX += 20;
-        this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
+        const finalHeight = this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
+
+        // Redimensionner le canvas si necessaire
+        if (!this.drawingInfo.fakeMode && canvas && finalHeight > initialHeight) {
+            canvas.height = finalHeight; // finalHeight inclut deja canvasBottomMargin (retour de drawNotes)
+
+            // Redessiner tout sur le canvas agrandi
+            ctx = canvas.getContext('2d');
+            this.drawTitle(ctx, scoreData.title, width);
+            this.drawMetadata(ctx, scoreData, width);
+            this.drawStaff(ctx, scoreData.clef);
+            this.drawClef(ctx, scoreData.clef);
+
+            let currentX = this.config.staffStartX + this.config.clefWidth;
+            currentX = this.drawKeySignature(ctx, scoreData.keySignature, currentX, scoreData.clef);
+            currentX = this.drawTimeSignature(ctx, scoreData.timeSignature, currentX);
+
+            currentX += 20;
+            this.drawNotes(ctx, scoreData.notes, scoreData.timeSignature, currentX, scoreData.clef, this.getSignaturesMap(scoreData.keySignature));
+        }
     }
 
     /**
@@ -295,7 +316,7 @@ class Renderer {
      * @param {number} startX - Position X de depart
      * @param {string} clef - "sol" ou "fa"
      * @param {Array} signatures - Map des alterations de l'armure
-     * @returns {void}
+     * @returns {number} Hauteur finale necessaire pour le canvas
      * @private
      */
     drawNotes(ctx, notes, timeSignature, startX, clef, signatures) {
@@ -383,6 +404,9 @@ class Renderer {
         }
 
         this.drawBarline(ctx, x, currentStaffY, true);
+
+        // Retourner la hauteur finale necessaire (position derniere portee + hauteur portee + marge bas)
+        return currentStaffY + (4 * this.config.staffLineSpacing) + this.config.canvasBottomMargin;
     }
 
     /**

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - Canvas Scroll Fix</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Tests : Canvas redimensionnement dynamique pour partitions longues</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = [];
+
+        function assert(condition, message) {
+            results.push({ pass: condition, message });
+        }
+
+        function displayResults() {
+            const div = document.getElementById('results');
+            let passed = 0;
+            let failed = 0;
+            let html = '';
+            results.forEach(r => {
+                if (r.pass) {
+                    passed++;
+                    html += `<p class="pass">✅ ${r.message}</p>`;
+                } else {
+                    failed++;
+                    html += `<p class="fail">❌ ${r.message}</p>`;
+                }
+            });
+            html = `<p><strong>${passed} passed, ${failed} failed</strong></p>` + html;
+            div.innerHTML = html;
+
+            if (failed > 0) {
+                console.error(`TESTS FAILED: ${failed}/${results.length}`);
+            } else {
+                console.log(`ALL TESTS PASSED: ${passed}/${results.length}`);
+            }
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.src = '../index.html';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        iframe.onload = function() {
+            const win = iframe.contentWindow;
+            const doc = iframe.contentDocument;
+
+            const textarea = doc.getElementById('partition-input');
+
+            // Test 1: Short score - canvas stays at 480px
+            textarea.value = 'Test court\n120\n4/4\nsol\nDo Re Mi Fa Sol La Si Do+';
+            win.handleRender();
+            let canvas = doc.getElementById('score-canvas');
+            assert(
+                canvas !== null && canvas.height === 480,
+                'Partition courte (1 portee) : canvas reste a 480px (hauteur: ' + (canvas ? canvas.height : 0) + ')'
+            );
+
+            // Test 2: Medium score (2-3 staves) - canvas expands
+            textarea.value = 'Test moyen\n120\n4/4\nsol\nDo Re Mi Fa Sol La Si Do+ Re+ Mi+ Fa+ Sol+ La+ Si+ Do++ Re++ Mi++ Fa++ Sol++ La++ Si++ Do Re Mi Fa Sol La Si Do+ Re+ Mi+ Fa+ Sol+ La+ Si+ Do++';
+            win.handleRender();
+            canvas = doc.getElementById('score-canvas');
+            assert(
+                canvas !== null && canvas.height > 480,
+                'Partition moyenne (2-3 portees) : canvas agrandi au-dela de 480px (hauteur: ' + (canvas ? canvas.height : 0) + ')'
+            );
+
+            // Test 3: Long score (5+ staves) - canvas expands significantly
+            const longLine = 'Do Re Mi Fa Sol La Si Do+ Re+ Mi+ Fa+ Sol+ La+ Si+ Do++ Re++ Mi++ Fa++ Sol++ La++ Si++ ';
+            textarea.value = 'Test long\n120\n4/4\nsol\n' + longLine.repeat(5);
+            win.handleRender();
+            canvas = doc.getElementById('score-canvas');
+            assert(
+                canvas !== null && canvas.height > 700,
+                'Partition longue (5+ portees) : canvas > 700px (hauteur: ' + (canvas ? canvas.height : 0) + ')'
+            );
+
+            // Test 4: drawNotes returns a number (final height)
+            const renderer = new win.Renderer();
+            const parser = new win.Parser();
+            const scoreData = parser.parse('Test\n120\n4/4\nsol\n' + longLine.repeat(3));
+            const container = doc.createElement('div');
+            doc.body.appendChild(container);
+            renderer.render(scoreData, container);
+            const testCanvas = container.querySelector('canvas');
+            assert(
+                testCanvas !== null && testCanvas.height > 480,
+                'Renderer.render() redimensionne le canvas pour une partition longue (hauteur: ' + (testCanvas ? testCanvas.height : 0) + ')'
+            );
+            doc.body.removeChild(container);
+
+            // Test 5: Export PNG captures the full expanded canvas
+            textarea.value = 'Test export long\n120\n4/4\nsol\n' + longLine.repeat(4);
+            win.handleRender();
+            canvas = doc.getElementById('score-canvas');
+            const canvasHeight = canvas ? canvas.height : 0;
+            const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+            assert(
+                canvasHeight > 480 && dataUrl.startsWith('data:image/png'),
+                'Export PNG sur partition longue : canvas agrandi (' + canvasHeight + 'px) produit un PNG valide'
+            );
+
+            // Test 6: After clear and re-render with short score, canvas returns to 480px
+            textarea.value = 'Court\n120\n4/4\nsol\nDo Re Mi';
+            win.handleRender();
+            canvas = doc.getElementById('score-canvas');
+            assert(
+                canvas !== null && canvas.height === 480,
+                'Apres re-render court : canvas revient a 480px (hauteur: ' + (canvas ? canvas.height : 0) + ')'
+            );
+
+            displayResults();
+        };
+    </script>
+</body>
+</html>
