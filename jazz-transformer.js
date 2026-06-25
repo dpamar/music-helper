@@ -41,9 +41,19 @@ class JazzTransformer {
         jazzScore.notes = this.applySwing(jazzScore.notes);
         console.log(`✅ Swing appliqué (ratio ${this.config.swingRatio})`);
 
-        // 3. Enrichir les accords
+        // 3. Détecter la tonalité et adapter les extensions
+        const detectedKey = this.detectKey(jazzScore.notes);
+        console.log(`✅ Tonalité détectée: ${detectedKey.tonic} ${detectedKey.mode}`);
+
+        if (detectedKey.mode === 'minor') {
+            this.config.chordExtensions = this.config.chordExtensions.includes('11th')
+                ? this.config.chordExtensions
+                : [...new Set([...this.config.chordExtensions, '7th'])];
+        }
+
+        // 4. Enrichir les accords
         jazzScore.notes = this.enrichChords(jazzScore.notes);
-        console.log(`✅ Accords enrichis (7ème ajoutée)`);
+        console.log(`✅ Accords enrichis (extensions: ${this.config.chordExtensions.join(', ')})`);
 
         // 4. Appliquer la syncopation
         jazzScore.notes = this.applySyncopation(jazzScore.notes);
@@ -201,6 +211,69 @@ class JazzTransformer {
         }
 
         return syncopatedNotes;
+    }
+
+    /**
+     * Détecte la tonalité par analyse statistique (Krumhansl-Schmuckler).
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @returns {{tonic: string, mode: string}} Tonalité détectée
+     * @private
+     */
+    detectKey(notes) {
+        const majorProfile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+        const minorProfile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+
+        const noteSteps = {
+            'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+        };
+
+        const alterationOffset = { 'sharp': 1, 'flat': -1, 'natural': 0, '': 0 };
+
+        const noteFrequency = new Array(12).fill(0);
+
+        notes.forEach(item => {
+            if (item.type === 'note') {
+                const baseStep = noteSteps[item.note];
+                if (baseStep !== undefined) {
+                    const offset = alterationOffset[item.alteration || ''];
+                    noteFrequency[(baseStep + offset + 12) % 12]++;
+                }
+            } else if (item.type === 'chord') {
+                item.notes.forEach(note => {
+                    const baseStep = noteSteps[note.note];
+                    if (baseStep !== undefined) {
+                        const offset = alterationOffset[note.alteration || ''];
+                        noteFrequency[(baseStep + offset + 12) % 12]++;
+                    }
+                });
+            }
+        });
+
+        let bestScore = -Infinity;
+        let bestKey = { tonic: 'C', mode: 'major' };
+
+        const tonicNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+        for (let tonic = 0; tonic < 12; tonic++) {
+            let majorScore = 0;
+            let minorScore = 0;
+            for (let i = 0; i < 12; i++) {
+                const degree = (i - tonic + 12) % 12;
+                majorScore += noteFrequency[i] * majorProfile[degree];
+                minorScore += noteFrequency[i] * minorProfile[degree];
+            }
+
+            if (majorScore > bestScore) {
+                bestScore = majorScore;
+                bestKey = { tonic: tonicNames[tonic], mode: 'major' };
+            }
+            if (minorScore > bestScore) {
+                bestScore = minorScore;
+                bestKey = { tonic: tonicNames[tonic], mode: 'minor' };
+            }
+        }
+
+        return bestKey;
     }
 
     /**
