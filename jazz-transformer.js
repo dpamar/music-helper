@@ -16,7 +16,9 @@ class JazzTransformer {
             swingRatio: 0.67,        // Ratio pour le swing (2/3 - 1/3)
             syncopationProbability: 0.3,  // 30% de chances de syncopation
             walkingBassEnabled: false,     // Walking bass (désactivé par défaut)
-            tempoMultiplier: 1.1      // Tempo légèrement plus rapide
+            tempoMultiplier: 1.1,     // Tempo légèrement plus rapide
+            chordExtensions: ['7th'],
+            ghostNoteProbability: 0
         };
     }
 
@@ -46,6 +48,13 @@ class JazzTransformer {
         // 4. Appliquer la syncopation
         jazzScore.notes = this.applySyncopation(jazzScore.notes);
         console.log(`✅ Syncopation appliquée (prob: ${this.config.syncopationProbability})`);
+
+        // 5. Générer la walking bass si activée
+        if (this.config.walkingBassEnabled) {
+            const bassLine = this.generateWalkingBass(jazzScore.notes);
+            jazzScore.bassLine = bassLine;
+            console.log(`✅ Walking bass générée (${bassLine.length} notes)`);
+        }
 
         return jazzScore;
     }
@@ -177,5 +186,73 @@ class JazzTransformer {
         }
 
         return syncopatedNotes;
+    }
+
+    /**
+     * Génère une ligne de basse marchante (walking bass) à partir de la progression harmonique.
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @returns {Array} Ligne de basse (tableau de notes simples)
+     * @private
+     */
+    generateWalkingBass(notes) {
+        const bassLine = [];
+        const chords = notes.filter(n => n.type === 'chord');
+
+        const noteSteps = {
+            'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+        };
+
+        const stepsToNote = [
+            'C', null, 'D', null, 'E', 'F', null, 'G', null, 'A', null, 'B'
+        ];
+
+        for (let i = 0; i < chords.length; i++) {
+            const chord = chords[i];
+            const root = chord.notes[0];
+            const rootStep = noteSteps[root.note];
+
+            const numBeats = Math.floor(chord.duration);
+
+            // Pattern: root, third, fifth, chromatic approach to next root
+            const chordTones = [
+                root.note,
+                stepsToNote[(rootStep + 4) % 12],
+                stepsToNote[(rootStep + 7) % 12]
+            ];
+
+            let passingTone = root.note;
+            let passingAlteration = '';
+            if (i < chords.length - 1) {
+                const nextRoot = chords[i + 1].notes[0];
+                const nextRootStep = noteSteps[nextRoot.note];
+                const passingStep = (nextRootStep - 1 + 12) % 12;
+                const resolvedNote = stepsToNote[passingStep];
+                if (resolvedNote) {
+                    passingTone = resolvedNote;
+                } else {
+                    // Chromatic note: use the note below with a sharp
+                    const noteBelow = stepsToNote[(passingStep - 1 + 12) % 12];
+                    passingTone = noteBelow || root.note;
+                    passingAlteration = noteBelow ? 'sharp' : '';
+                }
+            }
+
+            chordTones.push(passingTone);
+
+            for (let beat = 0; beat < Math.min(numBeats, 4); beat++) {
+                const noteName = chordTones[beat % chordTones.length];
+                const alteration = (beat % chordTones.length === 3) ? passingAlteration : '';
+
+                bassLine.push({
+                    type: 'note',
+                    note: noteName || root.note,
+                    alteration: alteration,
+                    octave: -1,
+                    duration: 1
+                });
+            }
+        }
+
+        return bassLine;
     }
 }
