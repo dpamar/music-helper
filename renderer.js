@@ -332,12 +332,11 @@ class Renderer {
                 let drawer = item.type === 'note' ? "drawNote" : "drawChord";
 
                 let remainingItemDuration = item.duration;
-                let noteBuffer = this.drawingInfo.lastScore.notes;
+                let noteBuffer = [];
                 while (remainingItemDuration >= remainingUntilMeasureBar) {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
                     let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingUntilMeasureBar, noteBuffer);
-                    noteBuffer = [];
                     x = notePosition.x;
                     noteY = notePosition.y;
                     remainingItemDuration -= remainingUntilMeasureBar;
@@ -350,11 +349,11 @@ class Renderer {
                     firstNoteX = firstNoteX || x;
                     lastNoteX = x;
                     let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingItemDuration, noteBuffer);
-                    noteBuffer = [];
                     x = notePosition.x;
                     noteY = notePosition.y;
                     remainingUntilMeasureBar -= remainingItemDuration;
                 }
+                this.drawingInfo.lastScore.notes.push(noteBuffer[0]);
                 if (firstNoteX != lastNoteX) {
                     this.drawLink(ctx, firstNoteX + this.config.noteWidth / 2, lastNoteX, noteY - 40);
                 }
