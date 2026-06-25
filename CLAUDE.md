@@ -24,6 +24,7 @@ music-helper/
 ├── renderer.js         # Rendu graphique Canvas → portée musicale
 ├── midi-audio-player.js # Lecture MIDI via élément HTML <audio>
 ├── midi-export.js      # Export de fichiers MIDI (téléchargement .mid)
+├── jazz-transformer.js # Transformation jazz (swing, accords, syncopation)
 ├── app.js              # Orchestration et gestion des événements
 └── CLAUDE.md           # Ce fichier
 ```
@@ -572,6 +573,61 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - **Son synthétique** : Oscillateurs simples (pas de son réaliste de piano/orchestre)
 - **Pas de nuances** : Toutes les notes au même volume
 - **Timbre fixe** : Onde sinusoïdale uniquement (pourrait être enrichi avec `triangle`, `sawtooth`, etc.)
+
+## 🎷 Arrangement Jazz
+
+L'application permet de transformer une partition classique en arrangement jazz avec un clic.
+
+### Fonctionnement
+
+1. **Bouton** :
+   - Situé dans la section "Partition générée", à côté des boutons d'export
+   - Icône : 🎷
+   - État : Désactivé par défaut, activé après génération d'une partition
+
+2. **Transformations appliquées** :
+   - **Tempo** : Augmenté de 10% (ex: 120 BPM → 132 BPM) pour un style plus enlevé
+   - **Swing rhythm** : Les croches (durée 0.5) sont transformées en triolets shuffle (0.67 / 0.33)
+   - **Accords enrichis** : Les triades (3 notes) deviennent des accords de 7ème (4 notes)
+   - **Syncopation** : 30% des noires et blanches sont décalées avec un court silence devant (effet syncopé)
+
+3. **Affichage** :
+   - Le titre de la partition est suffixé avec "(Jazz Arrangement)"
+   - La partition est re-générée automatiquement avec les transformations
+   - Un message de succès indique le tempo et le swing activé
+
+### Module jazz-transformer.js
+
+**Classe** : `JazzTransformer`
+
+**Configuration** :
+```javascript
+this.config = {
+    swingRatio: 0.67,                 // Ratio pour le swing (2/3)
+    syncopationProbability: 0.3,      // 30% de chances de syncopation
+    walkingBassEnabled: false,         // Walking bass (non implémenté)
+    tempoMultiplier: 1.1               // Tempo +10%
+}
+```
+
+**Méthodes principales** :
+- `transform(scoreData)` → scoreData jazzifié
+- `applySwing(notes)` → notes avec swing rhythm
+- `enrichChords(notes)` → accords avec 7ème ajoutée
+- `applySyncopation(notes)` → notes avec décalages rythmiques
+
+### État du bouton
+
+- **Désactivé** : Au chargement, après "Effacer", en cas d'erreur
+- **Activé** : Après génération réussie d'une partition
+- **Style** : Dégradé rose-rouge avec effet hover animé
+
+### Limitations
+
+- ⚠️ La syncopation est probabiliste (30%), donc non reproductible à l'identique
+- ⚠️ Les accords de plus de 3 notes ne sont pas enrichis
+- ⚠️ Pas de détection automatique de la tonalité pour les extensions d'accords (toujours 7ème majeure)
+- ⚠️ Walking bass non implémenté (flag `walkingBassEnabled` prévu pour évolution future)
 
 ## 🐛 Bugs connus / Limitations
 
