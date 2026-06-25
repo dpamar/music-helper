@@ -114,7 +114,13 @@ class JazzTransformer {
             const root = chord.notes[0];
             const rootStep = noteSteps[root.note];
 
-            // Major 7th is 11 semitones above root
+            if (rootStep === undefined) {
+                console.warn(`Unknown note: ${root.note}`);
+                return chord;
+            }
+
+            // Major 7th is 11 semitones above root (Cmaj7, Dmaj7, etc.)
+            // Dominant 7th would be 10 semitones - this uses major 7th
             const seventhStep = (rootStep + 11) % 12;
             const seventhNote = stepsToNote[seventhStep];
 
@@ -137,6 +143,10 @@ class JazzTransformer {
     /**
      * Applique une syncopation légère aux notes.
      * Certaines notes sont décalées avec un court silence devant.
+     *
+     * NOTE: Utilise Math.random() donc non-déterministe. Chaque appel
+     * produit un résultat différent. Ne pas appliquer plusieurs fois.
+     *
      * @param {Array} notes - Tableau de notes/accords/silences
      * @returns {Array} Notes avec syncopation appliquée
      * @private
