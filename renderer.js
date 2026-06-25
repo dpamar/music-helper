@@ -77,7 +77,7 @@ class Renderer {
 
         // Redimensionner le canvas si necessaire
         if (!this.drawingInfo.fakeMode && canvas && finalHeight > initialHeight) {
-            canvas.height = finalHeight + 50; // Ajouter une marge en bas
+            canvas.height = finalHeight; // finalHeight deja inclut 50px de marge
 
             // Redessiner tout sur le canvas agrandi
             ctx = canvas.getContext('2d');
