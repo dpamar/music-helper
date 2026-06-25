@@ -12,7 +12,8 @@ class Renderer {
             marginLeft: 50,
             marginTop: 100,
             staffStartX: 80,
-            clefWidth: 60
+            clefWidth: 60,
+            canvasBottomMargin: 50  // Marge en bas du canvas pour eviter que la barre finale ne touche le bord
         };
 
         this.notePositions = {
@@ -77,7 +78,7 @@ class Renderer {
 
         // Redimensionner le canvas si necessaire
         if (!this.drawingInfo.fakeMode && canvas && finalHeight > initialHeight) {
-            canvas.height = finalHeight; // finalHeight deja inclut 50px de marge
+            canvas.height = finalHeight; // finalHeight inclut deja canvasBottomMargin (retour de drawNotes)
 
             // Redessiner tout sur le canvas agrandi
             ctx = canvas.getContext('2d');
@@ -404,8 +405,8 @@ class Renderer {
 
         this.drawBarline(ctx, x, currentStaffY, true);
 
-        // Retourner la hauteur finale necessaire
-        return currentStaffY + (4 * this.config.staffLineSpacing) + 50;
+        // Retourner la hauteur finale necessaire (position derniere portee + hauteur portee + marge bas)
+        return currentStaffY + (4 * this.config.staffLineSpacing) + this.config.canvasBottomMargin;
     }
 
     /**
