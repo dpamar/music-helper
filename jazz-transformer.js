@@ -236,6 +236,7 @@ class JazzTransformer {
 
             const canAddGhost = note.type === 'note' &&
                                note.duration > 0.5 &&
+                               note.duration - 0.125 >= 0.25 &&
                                i < notes.length - 1;
 
             if (canAddGhost && Math.random() < this.config.ghostNoteProbability) {
@@ -387,6 +388,7 @@ class JazzTransformer {
             let passingAlteration = '';
             if (i < chords.length - 1) {
                 const nextRoot = chords[i + 1].notes[0];
+                if (!nextRoot) continue;
                 const nextRootStep = noteSteps[nextRoot.note];
                 const passingStep = (nextRootStep - 1 + 12) % 12;
                 const resolvedNote = stepsToNote[passingStep];
