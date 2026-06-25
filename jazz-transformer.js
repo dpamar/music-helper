@@ -59,7 +59,13 @@ class JazzTransformer {
         jazzScore.notes = this.applySyncopation(jazzScore.notes);
         console.log(`✅ Syncopation appliquée (prob: ${this.config.syncopationProbability})`);
 
-        // 5. Générer la walking bass si activée
+        // 6. Ajouter les ghost notes si activées
+        if (this.config.ghostNoteProbability > 0) {
+            jazzScore.notes = this.addGhostNotes(jazzScore.notes);
+            console.log(`✅ Ghost notes ajoutées (prob: ${this.config.ghostNoteProbability})`);
+        }
+
+        // 7. Générer la walking bass si activée
         if (this.config.walkingBassEnabled) {
             const bassLine = this.generateWalkingBass(jazzScore.notes);
             jazzScore.bassLine = bassLine;
@@ -211,6 +217,62 @@ class JazzTransformer {
         }
 
         return syncopatedNotes;
+    }
+
+    /**
+     * Ajoute des ghost notes (notes fantômes) entre les notes principales.
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @returns {Array} Notes avec ghost notes ajoutées
+     * @private
+     */
+    addGhostNotes(notes) {
+        const decorated = [];
+
+        const noteSteps = {
+            'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+        };
+
+        const stepsToNote = [
+            'C', null, 'D', null, 'E', 'F', null, 'G', null, 'A', null, 'B'
+        ];
+
+        for (let i = 0; i < notes.length; i++) {
+            const note = notes[i];
+            decorated.push({ ...note });
+
+            const canAddGhost = note.type === 'note' &&
+                               note.duration >= 0.5 &&
+                               i < notes.length - 1;
+
+            if (canAddGhost && Math.random() < this.config.ghostNoteProbability) {
+                const baseStep = noteSteps[note.note];
+                if (baseStep === undefined) continue;
+
+                const ghostStep = (baseStep + 1) % 12;
+                let ghostNoteName = stepsToNote[ghostStep];
+                let ghostAlteration = '';
+
+                // If the chromatic step lands on a black key, use the base note with sharp
+                if (!ghostNoteName) {
+                    ghostNoteName = stepsToNote[(ghostStep - 1 + 12) % 12];
+                    ghostAlteration = 'sharp';
+                }
+
+                if (ghostNoteName) {
+                    decorated[decorated.length - 1].duration -= 0.125;
+
+                    decorated.push({
+                        type: 'note',
+                        note: ghostNoteName,
+                        alteration: ghostAlteration,
+                        octave: note.octave,
+                        duration: 0.125
+                    });
+                }
+            }
+        }
+
+        return decorated;
     }
 
     /**
