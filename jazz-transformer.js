@@ -93,8 +93,8 @@ class JazzTransformer {
     }
 
     /**
-     * Enrichit les accords avec des extensions jazz (7ème).
-     * Triade (3 notes) → Accord de 7ème (4 notes).
+     * Enrichit les accords avec des extensions jazz (7ème, 9ème, 11ème, 13ème).
+     * Détecte automatiquement si l'accord est majeur ou mineur.
      * @param {Array} notes - Tableau de notes/accords/silences
      * @returns {Array} Notes avec accords enrichis
      * @private
@@ -109,41 +109,56 @@ class JazzTransformer {
         ];
 
         return notes.map(item => {
-            if (item.type !== 'chord') {
+            if (item.type !== 'chord' || item.notes.length < 3) {
                 return { ...item };
             }
 
-            // Deep copy needed because we'll modify chord.notes array
             const chord = JSON.parse(JSON.stringify(item));
-
-            if (chord.notes.length !== 3) {
-                return chord;
-            }
-
             const root = chord.notes[0];
             const rootStep = noteSteps[root.note];
 
             if (rootStep === undefined) {
-                console.warn(`Unknown note: ${root.note}`);
                 return chord;
             }
 
-            // Major 7th is 11 semitones above root (Cmaj7, Dmaj7, etc.)
-            // Dominant 7th would be 10 semitones - this uses major 7th
-            const seventhStep = (rootStep + 11) % 12;
-            const seventhNote = stepsToNote[seventhStep];
+            // Detect major/minor by analyzing the third
+            const third = chord.notes[1];
+            const thirdStep = noteSteps[third.note];
+            const thirdInterval = (thirdStep - rootStep + 12) % 12;
+            const isMajor = thirdInterval === 4;
 
-            if (seventhNote) {
-                // Octave offset: 0 if 7th is in same octave, 1 if it wraps
-                // Example: C (0) + 11 = B (same octave), D (2) + 11 = C# (next octave)
-                chord.notes.push({
-                    note: seventhNote,
-                    alteration: '',
-                    octave: root.octave + Math.floor((rootStep + 11) / 12)
-                });
+            const extensions = [];
 
-                console.log(`  → Accord enrichi: ${root.note} triade + 7ème (${seventhNote})`);
+            if (this.config.chordExtensions.includes('7th')) {
+                const seventhInterval = isMajor ? 11 : 10;
+                extensions.push(seventhInterval);
             }
+
+            if (this.config.chordExtensions.includes('9th')) {
+                extensions.push(14);
+            }
+
+            if (this.config.chordExtensions.includes('11th')) {
+                extensions.push(17);
+            }
+
+            if (this.config.chordExtensions.includes('13th')) {
+                extensions.push(21);
+            }
+
+            extensions.forEach(interval => {
+                const extStep = (rootStep + interval) % 12;
+                const extNote = stepsToNote[extStep];
+
+                if (extNote) {
+                    const octaveOffset = Math.floor((rootStep + interval) / 12);
+                    chord.notes.push({
+                        note: extNote,
+                        alteration: '',
+                        octave: root.octave + octaveOffset
+                    });
+                }
+            });
 
             return chord;
         });
