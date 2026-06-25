@@ -39,6 +39,10 @@ class JazzTransformer {
         jazzScore.notes = this.applySwing(jazzScore.notes);
         console.log(`✅ Swing appliqué (ratio ${this.config.swingRatio})`);
 
+        // 3. Enrichir les accords
+        jazzScore.notes = this.enrichChords(jazzScore.notes);
+        console.log(`✅ Accords enrichis (7ème ajoutée)`);
+
         return jazzScore;
     }
 
@@ -72,5 +76,52 @@ class JazzTransformer {
         }
 
         return swungNotes;
+    }
+
+    /**
+     * Enrichit les accords avec des extensions jazz (7ème).
+     * Triade (3 notes) → Accord de 7ème (4 notes).
+     * @param {Array} notes - Tableau de notes/accords/silences
+     * @returns {Array} Notes avec accords enrichis
+     * @private
+     */
+    enrichChords(notes) {
+        const noteSteps = {
+            'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+        };
+
+        const stepsToNote = [
+            'C', null, 'D', null, 'E', 'F', null, 'G', null, 'A', null, 'B'
+        ];
+
+        return notes.map(item => {
+            if (item.type !== 'chord') {
+                return JSON.parse(JSON.stringify(item));
+            }
+
+            const chord = JSON.parse(JSON.stringify(item));
+
+            if (chord.notes.length !== 3) {
+                return chord;
+            }
+
+            const root = chord.notes[0];
+            const rootStep = noteSteps[root.note];
+
+            const seventhStep = (rootStep + 11) % 12;
+            const seventhNote = stepsToNote[seventhStep];
+
+            if (seventhNote) {
+                chord.notes.push({
+                    note: seventhNote,
+                    alteration: '',
+                    octave: root.octave + Math.floor((rootStep + 11) / 12)
+                });
+
+                console.log(`  → Accord enrichi: ${root.note} triade + 7ème (${seventhNote})`);
+            }
+
+            return chord;
+        });
     }
 }
