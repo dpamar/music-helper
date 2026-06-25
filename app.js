@@ -443,6 +443,8 @@ function setPlayButtonState(enabled) {
 
 function handleJazzArrange() {
     const errorDiv = document.getElementById('error-message');
+    const outputDiv = document.getElementById('render-output');
+    const textarea = document.getElementById('partition-input');
 
     if (!currentScoreData) {
         errorDiv.textContent = '❌ Veuillez d\'abord générer une partition';
@@ -456,7 +458,21 @@ function handleJazzArrange() {
 
         console.log('🎷 Arrangement jazz demandé pour:', currentScoreData.title);
 
-        errorDiv.textContent = '✅ Arrangement jazz activé !';
+        const jazzScore = jazzTransformer.transform(currentScoreData);
+
+        if (!jazzScore.title.includes('(Jazz)')) {
+            jazzScore.title = jazzScore.title + ' (Jazz Arrangement)';
+        }
+
+        currentScoreData = jazzScore;
+        renderer.render(jazzScore, outputDiv);
+
+        const jazzScoreText = scoreToText(jazzScore);
+        textarea.value = jazzScoreText;
+
+        console.log('✅ Partition jazz rendue');
+
+        errorDiv.textContent = `✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM, Swing: activé)`;
         errorDiv.style.display = 'block';
         errorDiv.style.background = '#d4edda';
         errorDiv.style.color = '#155724';
@@ -467,9 +483,10 @@ function handleJazzArrange() {
             errorDiv.style.background = '';
             errorDiv.style.color = '';
             errorDiv.style.borderColor = '';
-        }, 3000);
+        }, 5000);
 
     } catch (error) {
+        console.error('❌ Erreur arrangement jazz:', error);
         errorDiv.textContent = '❌ Erreur arrangement jazz: ' + error.message;
         errorDiv.style.display = 'block';
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
