@@ -24,8 +24,11 @@ music-helper/
 ├── renderer.js         # Rendu graphique Canvas → portée musicale
 ├── midi-audio-player.js # Lecture MIDI via élément HTML <audio>
 ├── midi-export.js      # Export de fichiers MIDI (téléchargement .mid)
-├── jazz-transformer.js # Transformation jazz (swing, accords, syncopation)
+├── jazz-transformer.js # Transformation jazz (swing, accords, walking bass, ghost notes)
 ├── app.js              # Orchestration et gestion des événements
+├── test/
+│   ├── jazz-transformer.test.js  # Tests unitaires (Mocha/Chai)
+│   └── test-runner.html           # Runner de tests navigateur
 └── CLAUDE.md           # Ce fichier
 ```
 
@@ -574,27 +577,28 @@ L'application permet de lire la partition générée avec une synthèse audio di
 - **Pas de nuances** : Toutes les notes au même volume
 - **Timbre fixe** : Onde sinusoïdale uniquement (pourrait être enrichi avec `triangle`, `sawtooth`, etc.)
 
-## 🎷 Arrangement Jazz
+## 🎷 Arrangement Jazz (Complet)
 
-L'application permet de transformer une partition classique en arrangement jazz avec un clic.
+L'application permet de transformer une partition classique en arrangement jazz avec des transformations configurables.
 
-### Fonctionnement
+### Fonctionnalités
 
-1. **Bouton** :
-   - Situé dans la section "Partition générée", à côté des boutons d'export
-   - Icône : 🎷
-   - État : Désactivé par défaut, activé après génération d'une partition
+1. **Swing rhythm** : Croches transformées en triolets shuffle (ratio configurable)
+2. **Accords enrichis** : Extensions jazz (7ème, 9ème, 11ème, 13ème)
+3. **Syncopation** : Décalages rythmiques probabilistes
+4. **Walking bass** : Ligne de basse marchante automatique
+5. **Ghost notes** : Ornements rythmiques subtils
+6. **Détection automatique de tonalité** : Extensions adaptées au mode (majeur/mineur)
 
-2. **Transformations appliquées** :
-   - **Tempo** : Augmenté de 10% (ex: 120 BPM → 132 BPM) pour un style plus enlevé
-   - **Swing rhythm** : Les croches (durée 0.5) sont transformées en triolets shuffle (0.67 / 0.33)
-   - **Accords enrichis** : Les triades (3 notes) deviennent des accords de 7ème (4 notes)
-   - **Syncopation** : 30% des noires et blanches sont décalées avec un court silence devant (effet syncopé)
+### Interface utilisateur
 
-3. **Affichage** :
-   - Le titre de la partition est suffixé avec "(Jazz Arrangement)"
-   - La partition est re-générée automatiquement avec les transformations
-   - Un message de succès indique le tempo et le swing activé
+**Modale de configuration** (ouverte au clic sur "🎷 Arrangement Jazz") :
+- **Swing Ratio** : Contrôle l'intensité du shuffle (0.5 = droit, 0.67 = standard, 0.8 = très marqué)
+- **Syncopation** : Fréquence des décalages (0-100%)
+- **Tempo Multiplier** : Accélération du tempo (1.0 = original, 1.5 = +50%)
+- **Walking Bass** : Active/désactive la génération de basse marchante
+- **Ghost Notes** : Active/désactive les ornements rythmiques
+- **Extensions d'accords** : Sélection des extensions à appliquer (7ème, 9ème, 11ème, 13ème)
 
 ### Module jazz-transformer.js
 
@@ -603,31 +607,73 @@ L'application permet de transformer une partition classique en arrangement jazz 
 **Configuration** :
 ```javascript
 this.config = {
-    swingRatio: 0.67,                 // Ratio pour le swing (2/3)
-    syncopationProbability: 0.3,      // 30% de chances de syncopation
-    walkingBassEnabled: false,         // Walking bass (non implémenté)
-    tempoMultiplier: 1.1               // Tempo +10%
+    swingRatio: 0.67,              // Ratio pour le swing (2/3)
+    syncopationProbability: 0.3,   // 30% de chances de syncopation
+    walkingBassEnabled: false,     // Walking bass
+    tempoMultiplier: 1.1,          // Tempo +10%
+    chordExtensions: ['7th'],      // Extensions à appliquer
+    ghostNoteProbability: 0        // 0 = désactivé, 0.3 = 30% de chances
 }
 ```
 
 **Méthodes principales** :
 - `transform(scoreData)` → scoreData jazzifié
 - `applySwing(notes)` → notes avec swing rhythm
-- `enrichChords(notes)` → accords avec 7ème ajoutée
+- `enrichChords(notes)` → accords avec extensions (7ème, 9ème, 11ème, 13ème)
 - `applySyncopation(notes)` → notes avec décalages rythmiques
+- `generateWalkingBass(notes)` → ligne de basse marchante
+- `addGhostNotes(notes)` → notes avec ornements subtils
+- `detectKey(notes)` → {tonic: 'C', mode: 'major'|'minor'}
+
+### Algorithmes
+
+**Walking Bass** :
+- Pour chaque accord, génère 4 noires (temps forts)
+- Pattern : fondamentale → tierce → quinte → note de passage chromatique
+- Note de passage : approche chromatique de la prochaine fondamentale
+
+**Détection de tonalité** :
+- Algorithme de Krumhansl-Schmuckler
+- Analyse statistique des notes (fréquence de chaque degré chromatique)
+- Comparaison avec les profils majeur et mineur
+- Retour de la tonalité avec le meilleur score de corrélation
+
+**Extensions d'accords** :
+- Détection automatique majeur/mineur (analyse de la tierce)
+- Majeur : 7ème majeure (11 demi-tons), mineur : 7ème mineure (10 demi-tons)
+- 9ème = 14 demi-tons, 11ème = 17 demi-tons, 13ème = 21 demi-tons
+
+**Ghost Notes** :
+- Probabilité configurable (défaut 30% quand activé)
+- Ajout d'une double-croche chromatique (+1 demi-ton)
+- Raccourcissement de la note principale pour faire de la place
+
+### Rendu multi-portée
+
+Quand `scoreData.bassLine` est présent :
+- **Portée supérieure** (clef de sol) : mélodie et accords
+- **Portée inférieure** (clef de fa) : walking bass
+- Espacement vertical : 150px entre les portées
+- Synchronisation : même armure, même chiffrage, mêmes barres de mesure
+
+### Tests
+
+Fichiers de test dans `test/` :
+- `test/jazz-transformer.test.js` : Tests unitaires (Mocha/Chai)
+- `test/test-runner.html` : Runner navigateur
 
 ### État du bouton
 
 - **Désactivé** : Au chargement, après "Effacer", en cas d'erreur
 - **Activé** : Après génération réussie d'une partition
-- **Style** : Dégradé rose-rouge avec effet hover animé
+- **Action** : Ouvre la modale de configuration jazz
 
 ### Limitations
 
-- ⚠️ La syncopation est probabiliste (30%), donc non reproductible à l'identique
-- ⚠️ Les accords de plus de 3 notes ne sont pas enrichis
-- ⚠️ Pas de détection automatique de la tonalité pour les extensions d'accords (toujours 7ème majeure)
-- ⚠️ Walking bass non implémenté (flag `walkingBassEnabled` prévu pour évolution future)
+- ⚠️ La syncopation et les ghost notes sont probabilistes (non reproductibles)
+- ⚠️ La walking bass suppose des accords de durée entière (pas de croches)
+- ⚠️ Les extensions d'accords utilisent toujours des intervalles fixes (pas d'altérations contextuelles)
+- ⚠️ La détection de tonalité peut échouer sur des partitions atonales ou modales
 
 ## 🐛 Bugs connus / Limitations
 
@@ -642,6 +688,8 @@ this.config = {
 - ✅ ~~Pas d'export PNG~~ → Implémenté
 - ✅ ~~Pas d'export MIDI~~ → Implémenté
 - ✅ ~~Lecture MIDI : problème de support navigateur (Chrome)~~ → Corrigé via Web Audio API
+- ✅ ~~Walking bass non implémenté~~ → Implémenté avec notes de passage chromatiques
+- ✅ ~~Pas de détection de tonalité~~ → Implémenté (Krumhansl-Schmuckler)
 - ⚠️ Lecture MIDI : son synthétique (oscillateurs simples), pas de son réaliste
 - ⚠️ Lecture MIDI : la sélection d'instrument n'affecte PAS le bouton "Lire la partition" (son synthétique uniforme), seulement l'export MIDI
 - ⚠️ Pas d'export PDF pour l'instant (nécessite une bibliothèque externe)
