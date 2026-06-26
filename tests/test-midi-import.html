@@ -137,6 +137,161 @@
         });
     </script>
 
+        describe('MidiImporter - Track structure', () => {
+            it('devrait parser un track vide (seulement End of Track)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x04,  // length = 4
+                    0x00,                    // delta = 0
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.trackIndex).to.equal(0);
+                expect(track.notes).to.be.an('array').that.is.empty;
+                expect(track.noteCount).to.equal(0);
+            });
+
+            it('devrait rejeter une signature track invalide', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x68, 0x64,  // "MThd" (wrong)
+                    0x00, 0x00, 0x00, 0x04,
+                    0x00,
+                    0xFF, 0x2F, 0x00
+                ]);
+
+                expect(() => importer.parseTrack(bytes.buffer, 0, 480)).to.throw('Signature track invalide');
+            });
+        });
+
+        describe('MidiImporter - Note events', () => {
+            it('devrait parser une Note On et Note Off', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x0C,  // length = 12
+                    0x00,                    // delta = 0
+                    0x90, 0x3C, 0x50,        // Note On, channel 0, note 60 (C4), velocity 80
+                    0x83, 0x60,              // delta = 480
+                    0x80, 0x3C, 0x00,        // Note Off, channel 0, note 60
+                    0x00,                    // delta = 0
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.notes).to.have.lengthOf(1);
+                expect(track.notes[0].tick).to.equal(0);
+                expect(track.notes[0].midiNumber).to.equal(60);
+                expect(track.notes[0].duration).to.equal(480);
+                expect(track.notes[0].velocity).to.equal(80);
+            });
+
+            it('devrait traiter Note On avec velocity 0 comme Note Off', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x0C,  // length = 12
+                    0x00,                    // delta = 0
+                    0x90, 0x3C, 0x50,        // Note On C4 vel 80
+                    0x83, 0x60,              // delta = 480
+                    0x90, 0x3C, 0x00,        // Note On C4 vel 0 = Note Off
+                    0x00,                    // delta = 0
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.notes).to.have.lengthOf(1);
+                expect(track.notes[0].duration).to.equal(480);
+            });
+
+            it('devrait supporter le running status', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x0F,  // length = 15
+                    0x00,                    // delta = 0
+                    0x90, 0x3C, 0x50,        // Note On C4 vel 80
+                    0x83, 0x60,              // delta = 480
+                    0x3C, 0x00,              // Running status: Note On C4 vel 0 (= Note Off)
+                    0x00,                    // delta = 0
+                    0x3E, 0x60,              // Running status: Note On D4 vel 96
+                    0x83, 0x60,              // delta = 480
+                    0x3E, 0x00,              // Running status: Note On D4 vel 0 (= Note Off)
+                    0x00,
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.notes).to.have.lengthOf(2);
+                expect(track.notes[0].midiNumber).to.equal(60);
+                expect(track.notes[0].duration).to.equal(480);
+                expect(track.notes[1].midiNumber).to.equal(62);
+                expect(track.notes[1].duration).to.equal(480);
+            });
+        });
+
+        describe('MidiImporter - Meta events', () => {
+            it('devrait extraire le tempo (Set Tempo)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x0A,  // length = 10
+                    0x00,                    // delta = 0
+                    0xFF, 0x51, 0x03,        // Set Tempo, length = 3
+                    0x07, 0xA1, 0x20,        // 500000 microseconds/quarter = 120 BPM
+                    0x00,                    // delta = 0
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.tempo).to.equal(500000);
+            });
+
+            it('devrait extraire le nom de piste (Track Name)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x0C,  // length = 12
+                    0x00,                    // delta = 0
+                    0xFF, 0x03, 0x05,        // Track Name, length = 5
+                    0x50, 0x69, 0x61, 0x6E, 0x6F,  // "Piano"
+                    0x00,                    // delta = 0
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.trackName).to.equal('Piano');
+            });
+
+            it('devrait ignorer les meta-events inconnus', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x72, 0x6B,  // "MTrk"
+                    0x00, 0x00, 0x00, 0x0C,  // length = 12
+                    0x00,                    // delta = 0
+                    0xFF, 0x05, 0x05,        // Lyrics (unknown), length = 5
+                    0x48, 0x65, 0x6C, 0x6C, 0x6F,  // "Hello"
+                    0x00,                    // delta = 0
+                    0xFF, 0x2F, 0x00         // End of Track
+                ]);
+
+                const track = importer.parseTrack(bytes.buffer, 0, 480);
+
+                expect(track.trackName).to.be.null;
+                expect(track.notes).to.be.empty;
+            });
+        });
+
+    </script>
+
     <script>
         mocha.run();
     </script>
