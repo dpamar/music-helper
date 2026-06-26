@@ -313,4 +313,89 @@ class MidiImporter {
             }
         }
     }
+
+    /**
+     * Convertit un MidiTrack en scoreData compatible avec l'éditeur.
+     * @param {Object} track - Track MIDI à convertir
+     * @param {number} ppq - Pulses per quarter note
+     * @param {number} defaultTempo - Tempo par défaut si non spécifié (BPM)
+     * @returns {Object} scoreData compatible avec Parser/Renderer
+     */
+    trackToScoreData(track, ppq, defaultTempo = 120) {
+        let tempoBpm = defaultTempo;
+        if (track.tempo !== null) {
+            tempoBpm = Math.round(60000000 / track.tempo);
+        }
+
+        const title = track.trackName || 'Partition importée';
+
+        const sortedNotes = [...track.notes].sort((a, b) => a.tick - b.tick);
+
+        const notes = [];
+        let currentTick = 0;
+
+        for (const midiNote of sortedNotes) {
+            if (midiNote.tick > currentTick) {
+                const gapTicks = midiNote.tick - currentTick;
+                const gapDuration = gapTicks / ppq;
+                notes.push({ type: 'rest', duration: gapDuration });
+            }
+
+            const noteData = this.midiNumberToNote(midiNote.midiNumber);
+            const duration = midiNote.duration / ppq;
+
+            notes.push({
+                type: 'note',
+                note: noteData.note,
+                alteration: noteData.alteration,
+                octave: noteData.octave,
+                duration
+            });
+
+            currentTick = midiNote.tick + midiNote.duration;
+        }
+
+        return {
+            title,
+            tempo: tempoBpm,
+            timeSignature: { numerator: 4, denominator: 4 },
+            clef: 'sol',
+            keySignature: [],
+            notes
+        };
+    }
+
+    /**
+     * Convertit un numéro MIDI (0-127) en note + altération + octave.
+     * C4 (Do médium) = 60, octave 0 dans l'éditeur.
+     * @param {number} midiNumber - Numéro MIDI (0-127)
+     * @returns {{note: string, alteration: string, octave: number}}
+     */
+    midiNumberToNote(midiNumber) {
+        midiNumber = Math.max(0, Math.min(127, midiNumber));
+
+        const octave = Math.floor((midiNumber - 60) / 12);
+        const noteInOctave = ((midiNumber % 12) + 12) % 12;
+
+        const noteMap = [
+            { note: 'C', alteration: '' },
+            { note: 'C', alteration: 'sharp' },
+            { note: 'D', alteration: '' },
+            { note: 'D', alteration: 'sharp' },
+            { note: 'E', alteration: '' },
+            { note: 'F', alteration: '' },
+            { note: 'F', alteration: 'sharp' },
+            { note: 'G', alteration: '' },
+            { note: 'G', alteration: 'sharp' },
+            { note: 'A', alteration: '' },
+            { note: 'A', alteration: 'sharp' },
+            { note: 'B', alteration: '' }
+        ];
+
+        return {
+            note: noteMap[noteInOctave].note,
+            alteration: noteMap[noteInOctave].alteration,
+            octave
+        };
+    }
 }

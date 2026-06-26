@@ -293,6 +293,126 @@ test('parseMidiFile Format 1 with multiple tracks', () => {
     assertEqual(result.tracks[1].trackIndex, 1);
 });
 
+// =================== Track to ScoreData ===================
+console.log('\n--- Track to ScoreData ---');
+
+test('convert track with notes to scoreData', () => {
+    const importer = getImporter();
+    const track = {
+        trackIndex: 0,
+        trackName: 'Piano',
+        notes: [
+            { tick: 0, midiNumber: 60, duration: 480, velocity: 80 },
+            { tick: 480, midiNumber: 62, duration: 480, velocity: 80 },
+            { tick: 960, midiNumber: 64, duration: 960, velocity: 80 }
+        ],
+        tempo: 500000,
+        noteCount: 3,
+        minNote: 60,
+        maxNote: 64,
+        durationTicks: 1920
+    };
+
+    const scoreData = importer.trackToScoreData(track, 480, 120);
+
+    assertEqual(scoreData.title, 'Piano');
+    assertEqual(scoreData.tempo, 120);
+    assertEqual(scoreData.timeSignature.numerator, 4);
+    assertEqual(scoreData.timeSignature.denominator, 4);
+    assertEqual(scoreData.clef, 'sol');
+    assertEqual(scoreData.keySignature.length, 0);
+    assertEqual(scoreData.notes.length, 3);
+    assertEqual(scoreData.notes[0].type, 'note');
+    assertEqual(scoreData.notes[0].note, 'C');
+    assertEqual(scoreData.notes[0].octave, 0);
+    assertEqual(scoreData.notes[0].duration, 1);
+    assertEqual(scoreData.notes[0].alteration, '');
+    assertEqual(scoreData.notes[1].note, 'D');
+    assertEqual(scoreData.notes[2].note, 'E');
+    assertEqual(scoreData.notes[2].duration, 2);
+});
+
+test('add rests for gaps between notes', () => {
+    const importer = getImporter();
+    const track = {
+        trackIndex: 0,
+        trackName: null,
+        notes: [
+            { tick: 0, midiNumber: 60, duration: 480, velocity: 80 },
+            { tick: 960, midiNumber: 62, duration: 480, velocity: 80 }
+        ],
+        tempo: null,
+        noteCount: 2,
+        minNote: 60,
+        maxNote: 62,
+        durationTicks: 1440
+    };
+
+    const scoreData = importer.trackToScoreData(track, 480, 120);
+
+    assertEqual(scoreData.notes.length, 3);
+    assertEqual(scoreData.notes[0].type, 'note');
+    assertEqual(scoreData.notes[1].type, 'rest');
+    assertEqual(scoreData.notes[1].duration, 1);
+    assertEqual(scoreData.notes[2].type, 'note');
+});
+
+test('default title when trackName is null', () => {
+    const importer = getImporter();
+    const track = {
+        trackIndex: 0,
+        trackName: null,
+        notes: [{ tick: 0, midiNumber: 60, duration: 480, velocity: 80 }],
+        tempo: null,
+        noteCount: 1,
+        minNote: 60,
+        maxNote: 60,
+        durationTicks: 480
+    };
+
+    const scoreData = importer.trackToScoreData(track, 480, 120);
+    assertEqual(scoreData.title, 'Partition importée');
+    assertEqual(scoreData.tempo, 120);
+});
+
+test('midiNumberToNote conversions', () => {
+    const importer = getImporter();
+
+    // C4 = 60
+    let r = importer.midiNumberToNote(60);
+    assertEqual(r.note, 'C');
+    assertEqual(r.alteration, '');
+    assertEqual(r.octave, 0);
+
+    // C#4 = 61
+    r = importer.midiNumberToNote(61);
+    assertEqual(r.note, 'C');
+    assertEqual(r.alteration, 'sharp');
+    assertEqual(r.octave, 0);
+
+    // C5 = 72 (octave +1)
+    r = importer.midiNumberToNote(72);
+    assertEqual(r.note, 'C');
+    assertEqual(r.octave, 1);
+
+    // C3 = 48 (octave -1)
+    r = importer.midiNumberToNote(48);
+    assertEqual(r.note, 'C');
+    assertEqual(r.octave, -1);
+
+    // A4 = 69
+    r = importer.midiNumberToNote(69);
+    assertEqual(r.note, 'A');
+    assertEqual(r.alteration, '');
+    assertEqual(r.octave, 0);
+
+    // F#4 = 66
+    r = importer.midiNumberToNote(66);
+    assertEqual(r.note, 'F');
+    assertEqual(r.alteration, 'sharp');
+    assertEqual(r.octave, 0);
+});
+
 // =================== Summary ===================
 console.log('\n--- Results ---');
 console.log(passed + ' passed, ' + failed + ' failed');
