@@ -24,6 +24,7 @@ music-helper/
 ├── renderer.js         # Rendu graphique Canvas → portée musicale
 ├── midi-audio-player.js # Lecture MIDI via élément HTML <audio>
 ├── midi-export.js      # Export de fichiers MIDI (téléchargement .mid)
+├── midi-import.js      # Import de fichiers MIDI (.mid → notation française)
 ├── jazz-transformer.js # Transformation jazz (swing, accords, walking bass, ghost notes)
 ├── app.js              # Orchestration et gestion des événements
 ├── test/
@@ -674,6 +675,81 @@ Fichiers de test dans `test/` :
 - ⚠️ La walking bass suppose des accords de durée entière (pas de croches)
 - ⚠️ Les extensions d'accords utilisent toujours des intervalles fixes (pas d'altérations contextuelles)
 - ⚠️ La détection de tonalité peut échouer sur des partitions atonales ou modales
+
+## 📂 Import MIDI
+
+L'application permet d'importer un fichier MIDI (.mid) et de le convertir en notation française pour l'afficher et l'éditer.
+
+### Fonctionnement
+
+1. **Sélection du fichier** : Clic sur "📂 Importer MIDI" → sélecteur de fichiers
+2. **Parsing** : Extraction des notes et du tempo (autres features MIDI ignorées)
+3. **Sélection de piste** : Si multi-pistes, modale avec aperçu (nombre de notes, plage, durée)
+4. **Conversion** : scoreData → notation française → remplissage de la textarea
+5. **Génération** : Rendu automatique de la partition
+
+### Formats supportés
+
+- **MIDI Format 0** : Piste unique (import direct)
+- **MIDI Format 1** : Multi-pistes (sélection manuelle)
+- **MIDI Format 2** : Non supporté (erreur)
+
+### Features MIDI extraites
+
+- **Notes** : Note On (0x90) et Note Off (0x80)
+- **Tempo** : Set Tempo meta-event (0xFF 0x51)
+- **Nom de piste** : Track Name meta-event (0xFF 0x03)
+
+### Features MIDI ignorées
+
+Toutes les autres features sont ignorées silencieusement :
+- Contrôleurs (CC, 0xB0)
+- Pitch bend (0xE0)
+- Program Change (0xC0)
+- Channel/Polyphonic Pressure (0xD0, 0xA0)
+- SysEx (0xF0, 0xF7)
+- Autres meta-events (paroles, marqueurs, etc.)
+
+### Module midi-import.js
+
+**Classe** : `MidiImporter`
+
+**Méthodes principales** :
+- `parseMidiFile(arrayBuffer)` → `ParsedMidiFile`
+- `trackToScoreData(track, ppq, defaultTempo)` → `scoreData`
+
+**Méthodes privées** :
+- `parseHeader(buffer, offset)` → header info
+- `parseTrack(buffer, offset, ppq, trackIndex)` → `MidiTrack`
+- `parseEvent(buffer, offset, statusByte, currentTick, track)` → event info
+- `parseMetaEvent(buffer, offset, track)` → meta-event info
+- `readVarLength(buffer, offset)` → VLQ value
+- `closeNoteOn(notes, midiNumber, currentTick)` → calcule durée
+- `midiNumberToNote(midiNumber)` → {note, alteration, octave}
+
+### Conversion MIDI → Notation française
+
+- **Numérotation MIDI** : C4 (Do médium) = 60
+- **Altérations** : Préférence pour les dièses (Do# plutôt que Réb)
+- **Silences** : Ajoutés automatiquement pour combler les gaps entre notes
+- **Tempo** : Converti de μs/quarter en BPM
+- **Armure** : Vide par défaut (pas d'information dans MIDI)
+- **Chiffrage** : 4/4 par défaut
+
+### Interface utilisateur
+
+**Modale de sélection de piste** :
+- Liste verticale de cartes cliquables
+- Informations par piste : nom, nombre de notes, plage, durée, tempo
+- Bouton "Annuler"
+
+### Limitations
+
+- ⚠️ Pas de support des accords simultanés (polyphonie intra-tick) → convertis en notes séparées
+- ⚠️ Pas d'extraction du Time Signature (toujours 4/4 par défaut)
+- ⚠️ Pas de support des nuances (velocity ignorée)
+- ⚠️ Pas de détection automatique de clef (toujours clef de sol)
+- ⚠️ Pas de détection automatique d'armure (optimisation manuelle possible via options avancées)
 
 ## 🐛 Bugs connus / Limitations
 

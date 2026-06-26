@@ -34,8 +34,10 @@ Do Re Mi Fa Sol La Si Do+"></textarea>
                         <button id="btn-render" class="btn-primary">Générer la partition</button>
                         <button id="btn-advanced" class="btn-icon" title="Options avancées">⚙️</button>
                     </div>
+                    <button id="btn-import-midi" class="btn-secondary">📂 Importer MIDI</button>
                     <button id="btn-example" class="btn-secondary">Charger un exemple</button>
                     <button id="btn-clear" class="btn-secondary">Effacer</button>
+                    <input type="file" id="midi-file-input" accept=".mid,.midi" style="display:none;">
                 </div>
                 <div id="error-message" class="error-message" style="display: none;"></div>
             </section>
@@ -203,10 +205,26 @@ Do Re Mi Fa Sol La Si Do+"></textarea>
         </div>
     </div>
 
+    <!-- Modale de sélection de piste MIDI -->
+    <div id="track-selection-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>📂 Sélectionner une piste MIDI</h2>
+            <p class="modal-subtitle">Ce fichier contient plusieurs pistes. Choisissez celle à afficher :</p>
+            <div id="track-list" class="track-list">
+            </div>
+            <div class="modal-actions">
+                <button id="btn-cancel-track-selection" class="btn-secondary">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="parser.js"></script>
     <script src="renderer.js"></script>
     <script src="midi-export.js"></script>
+    <script src="midi-import.js"></script>
     <script src="midi-audio-player.js"></script>
     <script src="jazz-transformer.js"></script>
     <script src="app.js"></script>

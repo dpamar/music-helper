@@ -9,6 +9,7 @@ let parser;
 let renderer;
 let midiAudioPlayer;
 let midiExporter;
+let midiImporter;
 let jazzTransformer;
 let currentScoreData = null;
 let selectedInstruments = new Set();
@@ -122,6 +123,7 @@ function init() {
     parser = new Parser();
     renderer = new Renderer();
     midiExporter = new MidiExporter();
+    midiImporter = new MidiImporter();
     midiAudioPlayer = new MidiAudioPlayer();
     jazzTransformer = new JazzTransformer();
 
@@ -159,6 +161,12 @@ function init() {
     btnExportMIDI.addEventListener('click', handleExportMIDI);
     btnPlay.addEventListener('click', handlePlay);
     btnJazzArrange.addEventListener('click', handleJazzArrange);
+
+    document.getElementById('btn-import-midi').addEventListener('click', handleImportMidi);
+    document.getElementById('midi-file-input').addEventListener('change', handleFileSelected);
+    document.getElementById('btn-cancel-track-selection').addEventListener('click', () => {
+        document.getElementById('track-selection-modal').style.display = 'none';
+    });
 
     // Ctrl+Enter as keyboard shortcut for rendering
     textarea.addEventListener('keydown', (e) => {
@@ -252,9 +260,18 @@ function init() {
         }
     });
 
+    const trackSelectionModal = document.getElementById('track-selection-modal');
+    trackSelectionModal.addEventListener('click', (e) => {
+        if (e.target === trackSelectionModal) {
+            trackSelectionModal.style.display = 'none';
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (jazzModal.style.display === 'flex') {
+            if (trackSelectionModal.style.display === 'flex') {
+                trackSelectionModal.style.display = 'none';
+            } else if (jazzModal.style.display === 'flex') {
                 jazzModal.style.display = 'none';
             } else if (transposeModal.style.display === 'flex') {
                 closeTransposeModal();
@@ -755,6 +772,152 @@ function showTransposeModal() {
 function closeTransposeModal() {
     const modal = document.getElementById('transpose-modal');
     modal.style.display = 'none';
+}
+
+function handleImportMidi() {
+    const fileInput = document.getElementById('midi-file-input');
+    fileInput.value = '';
+    fileInput.click();
+}
+
+function handleFileSelected(event) {
+    const file = event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    if (!file.name.match(/\.(mid|midi)$/i)) {
+        showError('Format de fichier invalide. Veuillez sélectionner un fichier .mid ou .midi');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        try {
+            const arrayBuffer = e.target.result;
+            const parsedMidi = midiImporter.parseMidiFile(arrayBuffer);
+
+            const tracksWithNotes = parsedMidi.tracks.filter(track => track.noteCount > 0);
+
+            if (tracksWithNotes.length === 0) {
+                showError('Aucune note trouvée dans ce fichier MIDI');
+                return;
+            }
+
+            if (tracksWithNotes.length === 1) {
+                importTrack(tracksWithNotes[0], parsedMidi.ppq);
+                return;
+            }
+
+            showTrackSelectionModal(tracksWithNotes, parsedMidi.ppq);
+
+        } catch (error) {
+            showError("Erreur lors de l'import MIDI : " + error.message);
+            console.error(error);
+        }
+    };
+
+    reader.onerror = function() {
+        showError('Erreur lors de la lecture du fichier');
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function showTrackSelectionModal(tracks, ppq) {
+    const modal = document.getElementById('track-selection-modal');
+    const trackList = document.getElementById('track-list');
+
+    trackList.innerHTML = '';
+
+    tracks.forEach(function(track) {
+        const card = document.createElement('div');
+        card.className = 'track-preview-card';
+
+        const trackName = track.trackName || ('Piste ' + (track.trackIndex + 1));
+
+        const tempoBpm = track.tempo ? Math.round(60000000 / track.tempo) : 120;
+        const durationSeconds = Math.round((track.durationTicks / ppq) * (60 / tempoBpm));
+
+        const minutes = Math.floor(durationSeconds / 60);
+        const seconds = durationSeconds % 60;
+        const durationStr = minutes + ':' + seconds.toString().padStart(2, '0');
+
+        const minNoteName = formatMidiNote(track.minNote);
+        const maxNoteName = formatMidiNote(track.maxNote);
+
+        card.innerHTML =
+            '<h3>' + trackName + '</h3>' +
+            '<div class="track-info">' +
+            '<div><strong>Notes :</strong> ' + track.noteCount + '</div>' +
+            '<div><strong>Plage :</strong> ' + minNoteName + ' - ' + maxNoteName + '</div>' +
+            '<div><strong>Durée :</strong> ' + durationStr + '</div>' +
+            (track.tempo ? '<div><strong>Tempo :</strong> ' + tempoBpm + ' BPM</div>' : '') +
+            '</div>';
+
+        card.addEventListener('click', function() {
+            modal.style.display = 'none';
+            importTrack(track, ppq);
+        });
+
+        trackList.appendChild(card);
+    });
+
+    modal.style.display = 'flex';
+}
+
+function formatMidiNote(midiNumber) {
+    const noteNames = ['Do', 'Do#', 'Ré', 'Ré#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+    const octave = Math.floor(midiNumber / 12) - 1;
+    const noteName = noteNames[midiNumber % 12];
+    return noteName + octave;
+}
+
+function importTrack(track, ppq) {
+    try {
+        const scoreData = midiImporter.trackToScoreData(track, ppq);
+
+        const text = scoreToText(scoreData);
+
+        const textarea = document.getElementById('partition-input');
+        textarea.value = text;
+
+        handleRender();
+
+        showSuccess('Piste "' + scoreData.title + '" importée avec succès (' + track.noteCount + ' notes)');
+
+    } catch (error) {
+        showError("Erreur lors de l'import de la piste : " + error.message);
+        console.error(error);
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = '❌ ' + message;
+    errorDiv.style.display = 'block';
+    errorDiv.style.background = '';
+    errorDiv.style.color = '';
+    errorDiv.style.borderColor = '';
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showSuccess(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    errorDiv.style.background = '#d4edda';
+    errorDiv.style.color = '#155724';
+    errorDiv.style.borderColor = '#c3e6cb';
+
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+        errorDiv.style.background = '';
+        errorDiv.style.color = '';
+        errorDiv.style.borderColor = '';
+    }, 5000);
 }
 
 // DOMContentLoaded ensures the DOM is ready before running init
