@@ -234,6 +234,65 @@ test('ignore unknown meta-events', () => {
     assertEqual(t.notes.length, 0);
 });
 
+// =================== Full file parsing ===================
+console.log('\n--- Full file parsing ---');
+
+test('parseMidiFile Format 0 with one note', () => {
+    const importer = getImporter();
+    const headerBytes = [
+        0x4D, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+        0x00, 0x00, 0x00, 0x01, 0x01, 0xE0
+    ];
+    const trackBytes = [
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x0C,
+        0x00, 0x90, 0x3C, 0x50,
+        0x83, 0x60,
+        0x80, 0x3C, 0x00,
+        0x00, 0xFF, 0x2F, 0x00
+    ];
+    const bytes = new Uint8Array([...headerBytes, ...trackBytes]);
+    const result = importer.parseMidiFile(bytes.buffer);
+
+    assertEqual(result.format, 0);
+    assertEqual(result.ppq, 480);
+    assertEqual(result.tracks.length, 1);
+    assertEqual(result.tracks[0].notes.length, 1);
+    assertEqual(result.tracks[0].notes[0].midiNumber, 60);
+    assertEqual(result.tracks[0].notes[0].duration, 480);
+});
+
+test('parseMidiFile Format 1 with multiple tracks', () => {
+    const importer = getImporter();
+    const headerBytes = [
+        0x4D, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+        0x00, 0x01, 0x00, 0x02, 0x01, 0xE0
+    ];
+    // Track 1: tempo only (11 data bytes)
+    const track1 = [
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x0B,
+        0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20,
+        0x00, 0xFF, 0x2F, 0x00
+    ];
+    // Track 2: one note (13 data bytes)
+    const track2 = [
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x0D,
+        0x00, 0x90, 0x40, 0x60,
+        0x83, 0x60,
+        0x80, 0x40, 0x00,
+        0x00, 0xFF, 0x2F, 0x00
+    ];
+    const bytes = new Uint8Array([...headerBytes, ...track1, ...track2]);
+    const result = importer.parseMidiFile(bytes.buffer);
+
+    assertEqual(result.format, 1);
+    assertEqual(result.tracks.length, 2);
+    assertEqual(result.tracks[0].tempo, 500000);
+    assertEqual(result.tracks[0].notes.length, 0);
+    assertEqual(result.tracks[1].notes.length, 1);
+    assertEqual(result.tracks[1].notes[0].midiNumber, 64);
+    assertEqual(result.tracks[1].trackIndex, 1);
+});
+
 // =================== Summary ===================
 console.log('\n--- Results ---');
 console.log(passed + ' passed, ' + failed + ' failed');

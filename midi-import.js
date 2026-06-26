@@ -11,6 +11,34 @@ class MidiImporter {
     }
 
     /**
+     * Parse un fichier MIDI complet.
+     * @param {ArrayBuffer} buffer - Contenu du fichier .mid
+     * @returns {{format: number, ppq: number, tracks: Array}}
+     * @throws {Error} Si le fichier est invalide
+     */
+    parseMidiFile(buffer) {
+        const header = this.parseHeader(buffer, 0);
+
+        const tracks = [];
+        let currentOffset = header.nextOffset;
+
+        for (let i = 0; i < header.numTracks; i++) {
+            const track = this.parseTrack(buffer, currentOffset, header.ppq, i);
+            tracks.push(track);
+
+            const view = new DataView(buffer);
+            const trackLength = view.getUint32(currentOffset + 4);
+            currentOffset += 8 + trackLength;
+        }
+
+        return {
+            format: header.format,
+            ppq: header.ppq,
+            tracks
+        };
+    }
+
+    /**
      * Parse le header chunk MIDI (MThd).
      * @param {ArrayBuffer} buffer - Buffer du fichier MIDI
      * @param {number} offset - Position de départ
