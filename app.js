@@ -1,9 +1,7 @@
-/**
- * APP.JS
- *
- * Point d'entrée de l'application
- * Gère les événements utilisateur et orchestre Parser et Renderer
- */
+const BEATS_PER_LINE = 8;
+const SUCCESS_MESSAGE_DURATION_MS = 5000;
+const TRANSPOSE_MESSAGE_DURATION_MS = 3000;
+const MAX_MIDI_CHANNELS = 16;
 
 let parser;
 let renderer;
@@ -28,30 +26,48 @@ const reverseAlterationMapping = {
     'flat': 'b'
 };
 
+const MODAL_IDS = ['instrument-modal', 'transpose-modal', 'jazz-config-modal', 'track-selection-modal'];
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+}
+
+function closeAllModals() {
+    for (const id of MODAL_IDS) {
+        closeModal(id);
+    }
+}
+
 function scoreToText(scoreData) {
-    var result = "";
-    // Ajout du titre
+    let result = "";
     result += scoreData.title + "\n";
-
-    // Ajout du tempo
     result += scoreData.tempo + "\n";
-
-    // Ajout du chiffrage
     result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
-
-    // Ajout de la clef
     result += scoreData.clef;
-
-    // Ajout de l'armure
     scoreData.keySignature.map(note => result += " " + reverseNoteMapping[note.note] + reverseAlterationMapping[note.alteration]);
     result += "\n";
 
-    // Ajout des notes
-    var totalDuration = 0;
+    const NOTE_TYPE_CONVERTERS = {
+        'note': noteToText,
+        'chord': chordToText,
+        'rest': restToText
+    };
+
+    let totalDuration = 0;
     for (const note of scoreData.notes){
-        result += eval(note.type + "ToText")(note) + " ";
+        const converter = NOTE_TYPE_CONVERTERS[note.type];
+        if (!converter) {
+            throw new Error(`Type de note inconnu : ${note.type}`);
+        }
+        result += converter(note) + " ";
         totalDuration += note.duration;
-        if (totalDuration >= 8) {
+        if (totalDuration >= BEATS_PER_LINE) {
             totalDuration = 0;
             result += "\n";
         }
@@ -72,7 +88,7 @@ function restToText(rest) {
 }
 
 function chordToText(chord) {
-    var result = '';
+    let result = '';
     for (const note of chord.notes) {
         result += reverseNoteMapping[note.note];
         result += reverseAlterationMapping[note.alteration] || '';
@@ -86,21 +102,14 @@ function chordToText(chord) {
 }
 
 function noteToText(note) {
-    var result = "";
-    // La note
+    let result = "";
     result += reverseNoteMapping[note.note];
-
-    // L'altération
     result += reverseAlterationMapping[note.alteration] || '';
-    
-    // L'octave
     if (note.octave < 0) {
         result += '-'.repeat(-note.octave);
     } else if (note.octave >0) {
         result += '+'.repeat(note.octave);
     }
-    
-    // La durée
     return addDuration(result, note.duration);
 }
 
@@ -165,10 +174,9 @@ function init() {
     document.getElementById('btn-import-midi').addEventListener('click', handleImportMidi);
     document.getElementById('midi-file-input').addEventListener('change', handleFileSelected);
     document.getElementById('btn-cancel-track-selection').addEventListener('click', () => {
-        document.getElementById('track-selection-modal').style.display = 'none';
+        closeModal('track-selection-modal');
     });
 
-    // Ctrl+Enter as keyboard shortcut for rendering
     textarea.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             handleRender();
@@ -231,7 +239,6 @@ function init() {
         }
     });
 
-    // Jazz config modal
     const jazzModal = document.getElementById('jazz-config-modal');
     const applyJazzBtn = document.getElementById('apply-jazz-config');
     const closeJazzBtn = document.getElementById('close-jazz-modal');
@@ -251,33 +258,25 @@ function init() {
     applyJazzBtn.addEventListener('click', applyJazzTransformation);
 
     closeJazzBtn.addEventListener('click', () => {
-        jazzModal.style.display = 'none';
+        closeModal('jazz-config-modal');
     });
 
     jazzModal.addEventListener('click', (e) => {
         if (e.target === jazzModal) {
-            jazzModal.style.display = 'none';
+            closeModal('jazz-config-modal');
         }
     });
 
     const trackSelectionModal = document.getElementById('track-selection-modal');
     trackSelectionModal.addEventListener('click', (e) => {
         if (e.target === trackSelectionModal) {
-            trackSelectionModal.style.display = 'none';
+            closeModal('track-selection-modal');
         }
     });
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (trackSelectionModal.style.display === 'flex') {
-                trackSelectionModal.style.display = 'none';
-            } else if (jazzModal.style.display === 'flex') {
-                jazzModal.style.display = 'none';
-            } else if (transposeModal.style.display === 'flex') {
-                closeTransposeModal();
-            } else if (instrumentModal.style.display === 'flex') {
-                closeInstrumentModal();
-            }
+            closeAllModals();
         }
     });
 
@@ -499,20 +498,17 @@ function handleJazzArrange() {
         return;
     }
 
-    const modal = document.getElementById('jazz-config-modal');
-    modal.style.display = 'flex';
+    openModal('jazz-config-modal');
 }
 
 function applyJazzTransformation() {
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
     const textarea = document.getElementById('partition-input');
-    const modal = document.getElementById('jazz-config-modal');
 
     try {
         errorDiv.style.display = 'none';
 
-        // Read config from UI
         jazzTransformer.config.swingRatio = parseFloat(document.getElementById('swing-ratio').value);
         jazzTransformer.config.syncopationProbability = parseFloat(document.getElementById('syncopation-prob').value);
         jazzTransformer.config.tempoMultiplier = parseFloat(document.getElementById('tempo-mult').value);
@@ -538,20 +534,9 @@ function applyJazzTransformation() {
         const jazzScoreText = scoreToText(jazzScore);
         textarea.value = jazzScoreText;
 
-        modal.style.display = 'none';
+        closeModal('jazz-config-modal');
 
-        errorDiv.textContent = `✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM)`;
-        errorDiv.style.display = 'block';
-        errorDiv.style.background = '#d4edda';
-        errorDiv.style.color = '#155724';
-        errorDiv.style.borderColor = '#c3e6cb';
-
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-            errorDiv.style.background = '';
-            errorDiv.style.color = '';
-            errorDiv.style.borderColor = '';
-        }, 5000);
+        showSuccess(`✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM)`);
 
     } catch (error) {
         console.error('❌ Erreur arrangement jazz:', error);
@@ -562,7 +547,6 @@ function applyJazzTransformation() {
 }
 
 function showInstrumentModal() {
-    const modal = document.getElementById('instrument-modal');
     const grid = document.getElementById('instrument-grid');
 
     grid.textContent = '';
@@ -591,7 +575,7 @@ function showInstrumentModal() {
         grid.appendChild(button);
     }
 
-    modal.style.display = 'flex';
+    openModal('instrument-modal');
 
     const firstButton = grid.querySelector('.instrument-button');
     if (firstButton) {
@@ -619,8 +603,8 @@ function handleValidateInstruments() {
         return;
     }
 
-    if (selectedInstruments.size > 16) {
-        alert('⚠️ Maximum 16 instruments (limitation du format MIDI)');
+    if (selectedInstruments.size > MAX_MIDI_CHANNELS) {
+        alert(`⚠️ Maximum ${MAX_MIDI_CHANNELS} instruments (limitation du format MIDI)`);
         return;
     }
 
@@ -656,20 +640,8 @@ function handleValidateInstruments() {
             midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
         }
 
-        const successMsg = `✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
-                          instrumentConfigs.map(i => i.name).join(', ');
-        errorDiv.textContent = successMsg;
-        errorDiv.style.display = 'block';
-        errorDiv.style.background = '#d4edda';
-        errorDiv.style.color = '#155724';
-        errorDiv.style.borderColor = '#c3e6cb';
-
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-            errorDiv.style.background = '';
-            errorDiv.style.color = '';
-            errorDiv.style.borderColor = '';
-        }, 5000);
+        showSuccess(`✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
+                   instrumentConfigs.map(i => i.name).join(', '));
 
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
@@ -682,8 +654,7 @@ function handleValidateInstruments() {
 }
 
 function closeInstrumentModal() {
-    const modal = document.getElementById('instrument-modal');
-    modal.style.display = 'none';
+    closeModal('instrument-modal');
 }
 
 function handleApplyTranspose() {
@@ -734,18 +705,7 @@ function handleApplyTranspose() {
         setPlayButtonState(true);
 
         if (semitones !== 0) {
-            errorDiv.textContent = `✅ Partition générée avec transposition de ${semitones > 0 ? '+' : ''}${semitones} demi-ton(s)`;
-            errorDiv.style.display = 'block';
-            errorDiv.style.background = '#d4edda';
-            errorDiv.style.color = '#155724';
-            errorDiv.style.borderColor = '#c3e6cb';
-
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-                errorDiv.style.background = '';
-                errorDiv.style.color = '';
-                errorDiv.style.borderColor = '';
-            }, 3000);
+            showSuccess(`✅ Partition générée avec transposition de ${semitones > 0 ? '+' : ''}${semitones} demi-ton(s)`, TRANSPOSE_MESSAGE_DURATION_MS);
         }
 
     } catch (error) {
@@ -761,17 +721,14 @@ function handleApplyTranspose() {
 }
 
 function showTransposeModal() {
-    const modal = document.getElementById('transpose-modal');
     const input = document.getElementById('transpose-semitones');
-
     input.value = '0';
-    modal.style.display = 'flex';
+    openModal('transpose-modal');
     input.focus();
 }
 
 function closeTransposeModal() {
-    const modal = document.getElementById('transpose-modal');
-    modal.style.display = 'none';
+    closeModal('transpose-modal');
 }
 
 function handleImportMidi() {
@@ -827,7 +784,6 @@ function handleFileSelected(event) {
 }
 
 function showTrackSelectionModal(tracks, ppq) {
-    const modal = document.getElementById('track-selection-modal');
     const trackList = document.getElementById('track-list');
 
     trackList.innerHTML = '';
@@ -858,14 +814,14 @@ function showTrackSelectionModal(tracks, ppq) {
             '</div>';
 
         card.addEventListener('click', function() {
-            modal.style.display = 'none';
+            closeModal('track-selection-modal');
             importTrack(track, ppq);
         });
 
         trackList.appendChild(card);
     });
 
-    modal.style.display = 'flex';
+    openModal('track-selection-modal');
 }
 
 function formatMidiNote(midiNumber) {
@@ -904,7 +860,7 @@ function showError(message) {
     errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function showSuccess(message) {
+function showSuccess(message, duration = SUCCESS_MESSAGE_DURATION_MS) {
     const errorDiv = document.getElementById('error-message');
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
@@ -917,8 +873,7 @@ function showSuccess(message) {
         errorDiv.style.background = '';
         errorDiv.style.color = '';
         errorDiv.style.borderColor = '';
-    }, 5000);
+    }, duration);
 }
 
-// DOMContentLoaded ensures the DOM is ready before running init
 document.addEventListener('DOMContentLoaded', init);
