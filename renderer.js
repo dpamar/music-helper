@@ -30,8 +30,13 @@ class Renderer {
             optimizationMode: false,
             fakeMode: false,
             alterationCount: 0,
+            naturalNotes: {},
             lastScore: {}
         };
+    }
+
+    initNaturalNotes() {
+        [...'ABCDEFG'].map(x=>this.drawingInfo.naturalNotes[x] = false);
     }
 
     /**
@@ -155,10 +160,11 @@ class Renderer {
                 notes: scoreData.notes
             };
             this.render(newScoreData, null, true, true);
-            if (minAlterationCount <= this.drawingInfo.alterationCount) {
+            const alterationCountForThisSignature = this.drawingInfo.alterationCount + signature.length;
+            if (minAlterationCount <= alterationCountForThisSignature) {
                 continue;
             }
-            minAlterationCount = this.drawingInfo.alterationCount;
+            minAlterationCount = alterationCountForThisSignature;
             bestScoreData = newScoreData;
         }
         this.drawingInfo.fakeMode = false;
@@ -359,6 +365,8 @@ class Renderer {
 
         let remainingUntilMeasureBar = beatsPerMesure;
 
+        this.initNaturalNotes();
+
         for (const item of notes) {
             if (x > 850) {
                 staffCount++;
@@ -372,6 +380,7 @@ class Renderer {
                 x = this.drawRest(ctx, item, x, currentStaffY);
                 remainingUntilMeasureBar -= item.duration;
                 if (remainingUntilMeasureBar <= 0) {
+                    this.initNaturalNotes();
                     remainingUntilMeasureBar = beatsPerMesure;
                     this.drawBarline(ctx, x, currentStaffY, false);
                     x += this.config.noteWidth >> 1;
@@ -390,6 +399,7 @@ class Renderer {
                     let notePosition = this[drawer](ctx, item, x, clef, signatures, currentStaffY, remainingUntilMeasureBar, noteBuffer);
                     x = notePosition.x;
                     noteY = notePosition.y;
+                    this.initNaturalNotes();
                     remainingItemDuration -= remainingUntilMeasureBar;
                     remainingUntilMeasureBar = beatsPerMesure;
 
@@ -471,7 +481,7 @@ class Renderer {
 
         noteBuffer.push({
             note: effectiveNote.note,
-            alteration: effectiveAlteration,
+            alteration: (this.drawingInfo.naturalNotes[effectiveNote.note] && effectiveNote.alteration === 'natural') ? 'natural' : effectiveAlteration == signatures[effectiveNote.note] ? '' : effectiveAlteration,
             octave: effectiveNote.octave,
             type: 'note',
             duration: note.duration
@@ -522,7 +532,13 @@ class Renderer {
             }
 
             const effectiveAlteration = this.handleAlteration(ctx, x, y, effectiveNote, signatures);
-            chordData.notes.push({note: effectiveNote.note, alteration: effectiveAlteration, octave: effectiveNote.octave});
+            chordData.notes.push(
+                {
+                    note: effectiveNote.note,
+                    alteration: (this.drawingInfo.naturalNotes[effectiveNote.note] && effectiveNote.alteration === 'natural') ? 'natural' : effectiveAlteration == signatures[effectiveNote.note] ? '' : effectiveAlteration,
+                    octave: effectiveNote.octave
+                }
+            );
         }
 
         const basePosition = this.notePositions[firstNote.note][clef];
@@ -852,7 +868,7 @@ class Renderer {
      * @private
      */
     handleAlteration(ctx, x, y, note, defaultAlterations) {
-        var alterationToDraw = this.computeAlteration(note.note, note.alteration, defaultAlterations[note.note]);
+        var alterationToDraw = this.computeAlteration(note.note, note.alteration, defaultAlterations[note.note], true);
         if (alterationToDraw) {
             this.drawAccidental(ctx, alterationToDraw, x - 15, y);
         }
@@ -889,13 +905,26 @@ class Renderer {
      * @returns {string} Alteration a dessiner ('' si aucune)
      * @private
      */
-    computeAlteration(note, initialAlteration, defaultAlteration) {
+    computeAlteration(note, initialAlteration, defaultAlteration, updateNaturalNotes) {
         var alterationToDraw = initialAlteration;
         if (defaultAlteration) {
             if (alterationToDraw == defaultAlteration) {
-                alterationToDraw = '';
-            } else if (alterationToDraw == '') {
-                alterationToDraw = 'natural';
+                if(this.drawingInfo.naturalNotes[note]) {
+                    if (updateNaturalNotes) { 
+                        this.drawingInfo.naturalNotes[note] = false;
+                    }
+                } else {
+                    alterationToDraw = '';
+                }
+            } else if (alterationToDraw == 'natural') {
+                if (this.drawingInfo.naturalNotes[note]) {
+                    alterationToDraw = '';
+                } else {
+                    alterationToDraw = 'natural';
+                    if (updateNaturalNotes) { 
+                        this.drawingInfo.naturalNotes[note] = true;
+                    }
+                }
             }
         }
         return alterationToDraw;
@@ -912,12 +941,12 @@ class Renderer {
         if (!this.drawingInfo.optimizationMode) {
             return noteWithAlteration;
         }
-        var option1 = this.computeAlteration(noteWithAlteration.note, noteWithAlteration.alteration, defaultAlterations[noteWithAlteration.note]);
+        var option1 = this.computeAlteration(noteWithAlteration.note, noteWithAlteration.alteration, defaultAlterations[noteWithAlteration.note], false);
         if (!option1) {
             return noteWithAlteration;
         }
         var secondaryRep = this.getSecondaryRepresentation(noteWithAlteration);
-        var option2 = this.computeAlteration(secondaryRep.note, secondaryRep.alteration, defaultAlterations[secondaryRep.note]);
+        var option2 = this.computeAlteration(secondaryRep.note, secondaryRep.alteration, defaultAlterations[secondaryRep.note], false);
         if (!option2) {
             return secondaryRep;
         }
