@@ -17,6 +17,10 @@ class MidiImporter {
      * @throws {Error} Si le fichier est invalide
      */
     parseMidiFile(buffer) {
+        if (buffer.byteLength < 14) {
+            throw new Error('Fichier MIDI trop court (header incomplet)');
+        }
+
         const header = this.parseHeader(buffer, 0);
 
         const tracks = [];
@@ -145,8 +149,13 @@ class MidiImporter {
         let currentOffset = offset + 8;
         let currentTick = 0;
         let runningStatus = 0;
+        let iterations = 0;
+        const MAX_ITERATIONS = 100000;
 
         while (currentOffset < trackEnd) {
+            if (iterations++ > MAX_ITERATIONS) {
+                throw new Error('Parsing suspendu (boucle infinie détectée)');
+            }
             const delta = this.readVarLength(buffer, currentOffset);
             currentOffset += delta.bytesRead;
             currentTick += delta.value;

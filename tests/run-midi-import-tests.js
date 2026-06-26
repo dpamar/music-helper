@@ -413,6 +413,94 @@ test('midiNumberToNote conversions', () => {
     assertEqual(r.octave, 0);
 });
 
+// =================== Edge cases ===================
+console.log('\n--- Edge cases ---');
+
+test('reject file too short for header', () => {
+    const importer = getImporter();
+    const bytes = new Uint8Array([0x4D, 0x54, 0x68, 0x64, 0x00]);
+    assertThrows(() => importer.parseMidiFile(bytes.buffer), 'trop court');
+});
+
+test('handle unclosed notes gracefully', () => {
+    const importer = getImporter();
+    // Note On without matching Note Off before End of Track
+    const bytes = new Uint8Array([
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x07,
+        0x00, 0x90, 0x3C, 0x50,
+        0x00, 0xFF, 0x2F, 0x00
+    ]);
+    const track = importer.parseTrack(bytes.buffer, 0, 480);
+    // Note should exist but with duration -1 (unclosed)
+    assertEqual(track.notes.length, 1);
+    assertEqual(track.notes[0].duration, -1);
+});
+
+test('handle Note Off without matching Note On', () => {
+    const importer = getImporter();
+    // Note Off for a note that was never opened
+    const bytes = new Uint8Array([
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x07,
+        0x00, 0x80, 0x3C, 0x00,
+        0x00, 0xFF, 0x2F, 0x00
+    ]);
+    // Should not throw
+    const track = importer.parseTrack(bytes.buffer, 0, 480);
+    assertEqual(track.notes.length, 0);
+});
+
+test('ignore Program Change events', () => {
+    const importer = getImporter();
+    const bytes = new Uint8Array([
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x06,
+        0x00, 0xC0, 0x00,    // Program Change channel 0, program 0
+        0x00, 0xFF, 0x2F, 0x00
+    ]);
+    const track = importer.parseTrack(bytes.buffer, 0, 480);
+    assertEqual(track.notes.length, 0);
+});
+
+test('ignore Pitch Bend events', () => {
+    const importer = getImporter();
+    const bytes = new Uint8Array([
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x07,
+        0x00, 0xE0, 0x00, 0x40,  // Pitch bend center
+        0x00, 0xFF, 0x2F, 0x00
+    ]);
+    const track = importer.parseTrack(bytes.buffer, 0, 480);
+    assertEqual(track.notes.length, 0);
+});
+
+test('ignore SysEx events', () => {
+    const importer = getImporter();
+    const bytes = new Uint8Array([
+        0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x09,
+        0x00, 0xF0, 0x03, 0x01, 0x02, 0xF7,  // SysEx: length 3, data, F7 end
+        0x00, 0xFF, 0x2F, 0x00
+    ]);
+    const track = importer.parseTrack(bytes.buffer, 0, 480);
+    assertEqual(track.notes.length, 0);
+});
+
+test('trackToScoreData handles unclosed notes (duration -1) gracefully', () => {
+    const importer = getImporter();
+    const track = {
+        trackIndex: 0,
+        trackName: 'Test',
+        notes: [
+            { tick: 0, midiNumber: 60, duration: -1, velocity: 80 }
+        ],
+        tempo: 500000,
+        noteCount: 1,
+        minNote: 60,
+        maxNote: 60,
+        durationTicks: 480
+    };
+    // Should not crash - negative duration becomes negative beat value
+    const scoreData = importer.trackToScoreData(track, 480, 120);
+    assertEqual(scoreData.notes.length, 1);
+});
+
 // =================== Summary ===================
 console.log('\n--- Results ---');
 console.log(passed + ' passed, ' + failed + ' failed');
