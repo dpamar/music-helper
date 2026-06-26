@@ -35,9 +35,19 @@ function scoreToText(scoreData) {
     scoreData.keySignature.map(note => result += " " + reverseNoteMapping[note.note] + reverseAlterationMapping[note.alteration]);
     result += "\n";
 
+    const NOTE_TYPE_CONVERTERS = {
+        'note': noteToText,
+        'chord': chordToText,
+        'rest': restToText
+    };
+
     var totalDuration = 0;
     for (const note of scoreData.notes){
-        result += eval(note.type + "ToText")(note) + " ";
+        const converter = NOTE_TYPE_CONVERTERS[note.type];
+        if (!converter) {
+            throw new Error(`Type de note inconnu : ${note.type}`);
+        }
+        result += converter(note) + " ";
         totalDuration += note.duration;
         if (totalDuration >= BEATS_PER_LINE) {
             totalDuration = 0;
