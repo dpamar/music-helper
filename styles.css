@@ -265,7 +265,6 @@ button {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     display: flex;
-    align-items: center;
     justify-content: center;
     z-index: 1000;
     animation: fadeIn 0.2s ease-out;
@@ -279,6 +278,7 @@ button {
     width: 90%;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease-out;
+	overflow-y:auto;
 }
 
 .modal-content h2 {
@@ -545,6 +545,7 @@ button {
 
 .jazz-modal {
     max-width: 500px;
+	overflow-y:auto;
 }
 
 .jazz-option-group {
