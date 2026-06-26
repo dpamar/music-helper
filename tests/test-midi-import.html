@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tests - MIDI Import</title>
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css">
+</head>
+<body>
+    <div id="mocha"></div>
+
+    <script src="https://unpkg.com/chai/chai.js"></script>
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+
+    <script>
+        mocha.setup('bdd');
+        const expect = chai.expect;
+    </script>
+
+    <!-- Code source -->
+    <script src="../midi-import.js"></script>
+
+    <!-- Tests -->
+    <script>
+        describe('MidiImporter - Header parsing', () => {
+            it('devrait parser un header MIDI Format 0', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x68, 0x64,  // "MThd"
+                    0x00, 0x00, 0x00, 0x06,  // length = 6
+                    0x00, 0x00,              // format = 0
+                    0x00, 0x01,              // numTracks = 1
+                    0x01, 0xE0               // ppq = 480
+                ]);
+
+                const result = importer.parseHeader(bytes.buffer, 0);
+
+                expect(result.format).to.equal(0);
+                expect(result.numTracks).to.equal(1);
+                expect(result.ppq).to.equal(480);
+                expect(result.nextOffset).to.equal(14);
+            });
+
+            it('devrait parser un header MIDI Format 1', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x68, 0x64,
+                    0x00, 0x00, 0x00, 0x06,
+                    0x00, 0x01,              // format = 1
+                    0x00, 0x03,              // numTracks = 3
+                    0x00, 0xF0               // ppq = 240
+                ]);
+
+                const result = importer.parseHeader(bytes.buffer, 0);
+
+                expect(result.format).to.equal(1);
+                expect(result.numTracks).to.equal(3);
+                expect(result.ppq).to.equal(240);
+            });
+
+            it('devrait rejeter une signature invalide', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x52, 0x49, 0x46, 0x46,  // "RIFF" (not MIDI)
+                    0x00, 0x00, 0x00, 0x06,
+                    0x00, 0x00,
+                    0x00, 0x01,
+                    0x01, 0xE0
+                ]);
+
+                expect(() => importer.parseHeader(bytes.buffer, 0)).to.throw('Signature MIDI invalide');
+            });
+
+            it('devrait rejeter un format non supporté (Format 2)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([
+                    0x4D, 0x54, 0x68, 0x64,
+                    0x00, 0x00, 0x00, 0x06,
+                    0x00, 0x02,              // format = 2
+                    0x00, 0x01,
+                    0x01, 0xE0
+                ]);
+
+                expect(() => importer.parseHeader(bytes.buffer, 0)).to.throw('Format MIDI 2 non supporté');
+            });
+        });
+
+        describe('MidiImporter - VLQ parsing', () => {
+            it('devrait parser un VLQ sur 1 byte (0-127)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([0x40]);  // 64
+
+                const result = importer.readVarLength(bytes.buffer, 0);
+
+                expect(result.value).to.equal(64);
+                expect(result.bytesRead).to.equal(1);
+            });
+
+            it('devrait parser un VLQ de valeur 0', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([0x00]);
+
+                const result = importer.readVarLength(bytes.buffer, 0);
+
+                expect(result.value).to.equal(0);
+                expect(result.bytesRead).to.equal(1);
+            });
+
+            it('devrait parser un VLQ sur 2 bytes (128)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([0x81, 0x00]);  // 128
+
+                const result = importer.readVarLength(bytes.buffer, 0);
+
+                expect(result.value).to.equal(128);
+                expect(result.bytesRead).to.equal(2);
+            });
+
+            it('devrait parser un VLQ sur 2 bytes (480 = 0x83 0x60)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([0x83, 0x60]);  // 480
+
+                const result = importer.readVarLength(bytes.buffer, 0);
+
+                expect(result.value).to.equal(480);
+                expect(result.bytesRead).to.equal(2);
+            });
+
+            it('devrait parser un VLQ sur 4 bytes (max)', () => {
+                const importer = new MidiImporter();
+                const bytes = new Uint8Array([0xFF, 0xFF, 0xFF, 0x7F]);  // 0x0FFFFFFF
+
+                const result = importer.readVarLength(bytes.buffer, 0);
+
+                expect(result.value).to.equal(0x0FFFFFFF);
+                expect(result.bytesRead).to.equal(4);
+            });
+        });
+    </script>
+
+    <script>
+        mocha.run();
+    </script>
+</body>
+</html>
