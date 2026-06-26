@@ -1,10 +1,3 @@
-/**
- * APP.JS
- *
- * Point d'entrée de l'application
- * Gère les événements utilisateur et orchestre Parser et Renderer
- */
-
 let parser;
 let renderer;
 let midiAudioPlayer;
@@ -30,23 +23,13 @@ const reverseAlterationMapping = {
 
 function scoreToText(scoreData) {
     var result = "";
-    // Ajout du titre
     result += scoreData.title + "\n";
-
-    // Ajout du tempo
     result += scoreData.tempo + "\n";
-
-    // Ajout du chiffrage
     result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
-
-    // Ajout de la clef
     result += scoreData.clef;
-
-    // Ajout de l'armure
     scoreData.keySignature.map(note => result += " " + reverseNoteMapping[note.note] + reverseAlterationMapping[note.alteration]);
     result += "\n";
 
-    // Ajout des notes
     var totalDuration = 0;
     for (const note of scoreData.notes){
         result += eval(note.type + "ToText")(note) + " ";
@@ -87,20 +70,13 @@ function chordToText(chord) {
 
 function noteToText(note) {
     var result = "";
-    // La note
     result += reverseNoteMapping[note.note];
-
-    // L'altération
     result += reverseAlterationMapping[note.alteration] || '';
-    
-    // L'octave
     if (note.octave < 0) {
         result += '-'.repeat(-note.octave);
     } else if (note.octave >0) {
         result += '+'.repeat(note.octave);
     }
-    
-    // La durée
     return addDuration(result, note.duration);
 }
 
@@ -168,7 +144,6 @@ function init() {
         document.getElementById('track-selection-modal').style.display = 'none';
     });
 
-    // Ctrl+Enter as keyboard shortcut for rendering
     textarea.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             handleRender();
@@ -231,7 +206,6 @@ function init() {
         }
     });
 
-    // Jazz config modal
     const jazzModal = document.getElementById('jazz-config-modal');
     const applyJazzBtn = document.getElementById('apply-jazz-config');
     const closeJazzBtn = document.getElementById('close-jazz-modal');
@@ -512,7 +486,6 @@ function applyJazzTransformation() {
     try {
         errorDiv.style.display = 'none';
 
-        // Read config from UI
         jazzTransformer.config.swingRatio = parseFloat(document.getElementById('swing-ratio').value);
         jazzTransformer.config.syncopationProbability = parseFloat(document.getElementById('syncopation-prob').value);
         jazzTransformer.config.tempoMultiplier = parseFloat(document.getElementById('tempo-mult').value);
@@ -920,5 +893,4 @@ function showSuccess(message) {
     }, 5000);
 }
 
-// DOMContentLoaded ensures the DOM is ready before running init
 document.addEventListener('DOMContentLoaded', init);
