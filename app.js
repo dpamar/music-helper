@@ -26,6 +26,24 @@ const reverseAlterationMapping = {
     'flat': 'b'
 };
 
+const MODAL_IDS = ['instrument-modal', 'transpose-modal', 'jazz-config-modal', 'track-selection-modal'];
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+}
+
+function closeAllModals() {
+    for (const id of MODAL_IDS) {
+        closeModal(id);
+    }
+}
+
 function scoreToText(scoreData) {
     let result = "";
     result += scoreData.title + "\n";
@@ -156,7 +174,7 @@ function init() {
     document.getElementById('btn-import-midi').addEventListener('click', handleImportMidi);
     document.getElementById('midi-file-input').addEventListener('change', handleFileSelected);
     document.getElementById('btn-cancel-track-selection').addEventListener('click', () => {
-        document.getElementById('track-selection-modal').style.display = 'none';
+        closeModal('track-selection-modal');
     });
 
     textarea.addEventListener('keydown', (e) => {
@@ -240,33 +258,25 @@ function init() {
     applyJazzBtn.addEventListener('click', applyJazzTransformation);
 
     closeJazzBtn.addEventListener('click', () => {
-        jazzModal.style.display = 'none';
+        closeModal('jazz-config-modal');
     });
 
     jazzModal.addEventListener('click', (e) => {
         if (e.target === jazzModal) {
-            jazzModal.style.display = 'none';
+            closeModal('jazz-config-modal');
         }
     });
 
     const trackSelectionModal = document.getElementById('track-selection-modal');
     trackSelectionModal.addEventListener('click', (e) => {
         if (e.target === trackSelectionModal) {
-            trackSelectionModal.style.display = 'none';
+            closeModal('track-selection-modal');
         }
     });
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (trackSelectionModal.style.display === 'flex') {
-                trackSelectionModal.style.display = 'none';
-            } else if (jazzModal.style.display === 'flex') {
-                jazzModal.style.display = 'none';
-            } else if (transposeModal.style.display === 'flex') {
-                closeTransposeModal();
-            } else if (instrumentModal.style.display === 'flex') {
-                closeInstrumentModal();
-            }
+            closeAllModals();
         }
     });
 
@@ -488,15 +498,13 @@ function handleJazzArrange() {
         return;
     }
 
-    const modal = document.getElementById('jazz-config-modal');
-    modal.style.display = 'flex';
+    openModal('jazz-config-modal');
 }
 
 function applyJazzTransformation() {
     const errorDiv = document.getElementById('error-message');
     const outputDiv = document.getElementById('render-output');
     const textarea = document.getElementById('partition-input');
-    const modal = document.getElementById('jazz-config-modal');
 
     try {
         errorDiv.style.display = 'none';
@@ -526,7 +534,7 @@ function applyJazzTransformation() {
         const jazzScoreText = scoreToText(jazzScore);
         textarea.value = jazzScoreText;
 
-        modal.style.display = 'none';
+        closeModal('jazz-config-modal');
 
         showSuccess(`✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM)`);
 
@@ -539,7 +547,6 @@ function applyJazzTransformation() {
 }
 
 function showInstrumentModal() {
-    const modal = document.getElementById('instrument-modal');
     const grid = document.getElementById('instrument-grid');
 
     grid.textContent = '';
@@ -568,7 +575,7 @@ function showInstrumentModal() {
         grid.appendChild(button);
     }
 
-    modal.style.display = 'flex';
+    openModal('instrument-modal');
 
     const firstButton = grid.querySelector('.instrument-button');
     if (firstButton) {
@@ -647,8 +654,7 @@ function handleValidateInstruments() {
 }
 
 function closeInstrumentModal() {
-    const modal = document.getElementById('instrument-modal');
-    modal.style.display = 'none';
+    closeModal('instrument-modal');
 }
 
 function handleApplyTranspose() {
@@ -715,17 +721,14 @@ function handleApplyTranspose() {
 }
 
 function showTransposeModal() {
-    const modal = document.getElementById('transpose-modal');
     const input = document.getElementById('transpose-semitones');
-
     input.value = '0';
-    modal.style.display = 'flex';
+    openModal('transpose-modal');
     input.focus();
 }
 
 function closeTransposeModal() {
-    const modal = document.getElementById('transpose-modal');
-    modal.style.display = 'none';
+    closeModal('transpose-modal');
 }
 
 function handleImportMidi() {
@@ -781,7 +784,6 @@ function handleFileSelected(event) {
 }
 
 function showTrackSelectionModal(tracks, ppq) {
-    const modal = document.getElementById('track-selection-modal');
     const trackList = document.getElementById('track-list');
 
     trackList.innerHTML = '';
@@ -812,14 +814,14 @@ function showTrackSelectionModal(tracks, ppq) {
             '</div>';
 
         card.addEventListener('click', function() {
-            modal.style.display = 'none';
+            closeModal('track-selection-modal');
             importTrack(track, ppq);
         });
 
         trackList.appendChild(card);
     });
 
-    modal.style.display = 'flex';
+    openModal('track-selection-modal');
 }
 
 function formatMidiNote(midiNumber) {
