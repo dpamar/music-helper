@@ -344,6 +344,11 @@ class MidiImporter {
         let currentTick = 0;
 
         for (const midiNote of sortedNotes) {
+            // Skip unclosed notes (no matching Note Off)
+            if (midiNote.duration < 0) {
+                continue;
+            }
+
             if (midiNote.tick > currentTick) {
                 const gapTicks = midiNote.tick - currentTick;
                 const gapDuration = gapTicks / ppq;
