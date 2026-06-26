@@ -28,6 +28,12 @@ const reverseAlterationMapping = {
 
 const MODAL_IDS = ['instrument-modal', 'transpose-modal', 'jazz-config-modal', 'track-selection-modal'];
 
+const NOTE_TYPE_CONVERTERS = {
+    'note': noteToText,
+    'chord': chordToText,
+    'rest': restToText
+};
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.style.display = 'flex';
@@ -52,12 +58,6 @@ function scoreToText(scoreData) {
     result += scoreData.clef;
     scoreData.keySignature.map(note => result += " " + reverseNoteMapping[note.note] + reverseAlterationMapping[note.alteration]);
     result += "\n";
-
-    const NOTE_TYPE_CONVERTERS = {
-        'note': noteToText,
-        'chord': chordToText,
-        'rest': restToText
-    };
 
     let totalDuration = 0;
     for (const note of scoreData.notes){
