@@ -27,7 +27,7 @@ const reverseAlterationMapping = {
 };
 
 function scoreToText(scoreData) {
-    var result = "";
+    let result = "";
     result += scoreData.title + "\n";
     result += scoreData.tempo + "\n";
     result += scoreData.timeSignature.numerator + "/" + scoreData.timeSignature.denominator +"\n"
@@ -41,7 +41,7 @@ function scoreToText(scoreData) {
         'rest': restToText
     };
 
-    var totalDuration = 0;
+    let totalDuration = 0;
     for (const note of scoreData.notes){
         const converter = NOTE_TYPE_CONVERTERS[note.type];
         if (!converter) {
@@ -70,7 +70,7 @@ function restToText(rest) {
 }
 
 function chordToText(chord) {
-    var result = '';
+    let result = '';
     for (const note of chord.notes) {
         result += reverseNoteMapping[note.note];
         result += reverseAlterationMapping[note.alteration] || '';
@@ -84,7 +84,7 @@ function chordToText(chord) {
 }
 
 function noteToText(note) {
-    var result = "";
+    let result = "";
     result += reverseNoteMapping[note.note];
     result += reverseAlterationMapping[note.alteration] || '';
     if (note.octave < 0) {
