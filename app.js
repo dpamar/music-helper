@@ -28,12 +28,6 @@ const reverseAlterationMapping = {
 
 const MODAL_IDS = ['instrument-modal', 'transpose-modal', 'jazz-config-modal', 'track-selection-modal'];
 
-const NOTE_TYPE_CONVERTERS = {
-    'note': noteToText,
-    'chord': chordToText,
-    'rest': restToText
-};
-
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.style.display = 'flex';
@@ -112,6 +106,12 @@ function noteToText(note) {
     }
     return addDuration(result, note.duration);
 }
+
+const NOTE_TYPE_CONVERTERS = {
+    'note': noteToText,
+    'chord': chordToText,
+    'rest': restToText
+};
 
 const INSTRUMENTS = {
     'piano': { name: 'Piano', program: 0, emoji: '🎹', gmName: 'Acoustic Grand Piano' },
