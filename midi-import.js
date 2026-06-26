@@ -388,7 +388,9 @@ class MidiImporter {
     midiNumberToNote(midiNumber) {
         midiNumber = Math.max(0, Math.min(127, midiNumber));
 
-        const octave = Math.floor((midiNumber - 60) / 12);
+        // Standard MIDI octave: C4=60 is octave 4, so floor(60/12)=5, offset by -5 to get 0
+        // Then adjust by +1 to match editor convention (C4=octave 0)
+        const octave = Math.floor(midiNumber / 12) - 5;
         const noteInOctave = ((midiNumber % 12) + 12) % 12;
 
         const noteMap = [
