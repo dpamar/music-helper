@@ -848,14 +848,33 @@ function showTrackSelectionModal(tracks, ppq) {
         const minNoteName = formatMidiNote(track.minNote);
         const maxNoteName = formatMidiNote(track.maxNote);
 
-        card.innerHTML =
-            '<h3>' + trackName + '</h3>' +
-            '<div class="track-info">' +
-            '<div><strong>Notes :</strong> ' + track.noteCount + '</div>' +
-            '<div><strong>Plage :</strong> ' + minNoteName + ' - ' + maxNoteName + '</div>' +
-            '<div><strong>Durée :</strong> ' + durationStr + '</div>' +
-            (track.tempo ? '<div><strong>Tempo :</strong> ' + tempoBpm + ' BPM</div>' : '') +
-            '</div>';
+        // Build DOM structure safely (avoid XSS from untrusted track names)
+        const h3 = document.createElement('h3');
+        h3.textContent = trackName;
+        card.appendChild(h3);
+
+        const trackInfo = document.createElement('div');
+        trackInfo.className = 'track-info';
+
+        const notesDiv = document.createElement('div');
+        notesDiv.textContent = 'Notes : ' + track.noteCount;
+        trackInfo.appendChild(notesDiv);
+
+        const rangeDiv = document.createElement('div');
+        rangeDiv.textContent = 'Plage : ' + minNoteName + ' - ' + maxNoteName;
+        trackInfo.appendChild(rangeDiv);
+
+        const durationDiv = document.createElement('div');
+        durationDiv.textContent = 'Durée : ' + durationStr;
+        trackInfo.appendChild(durationDiv);
+
+        if (track.tempo) {
+            const tempoDiv = document.createElement('div');
+            tempoDiv.textContent = 'Tempo : ' + tempoBpm + ' BPM';
+            trackInfo.appendChild(tempoDiv);
+        }
+
+        card.appendChild(trackInfo);
 
         card.addEventListener('click', function() {
             modal.style.display = 'none';
