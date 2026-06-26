@@ -528,18 +528,7 @@ function applyJazzTransformation() {
 
         modal.style.display = 'none';
 
-        errorDiv.textContent = `✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM)`;
-        errorDiv.style.display = 'block';
-        errorDiv.style.background = '#d4edda';
-        errorDiv.style.color = '#155724';
-        errorDiv.style.borderColor = '#c3e6cb';
-
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-            errorDiv.style.background = '';
-            errorDiv.style.color = '';
-            errorDiv.style.borderColor = '';
-        }, SUCCESS_MESSAGE_DURATION_MS);
+        showSuccess(`✅ Arrangement jazz appliqué ! (Tempo: ${jazzScore.tempo} BPM)`);
 
     } catch (error) {
         console.error('❌ Erreur arrangement jazz:', error);
@@ -644,20 +633,8 @@ function handleValidateInstruments() {
             midiExporter.exportMultiTrack(currentScoreData, filename, instrumentConfigs);
         }
 
-        const successMsg = `✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
-                          instrumentConfigs.map(i => i.name).join(', ');
-        errorDiv.textContent = successMsg;
-        errorDiv.style.display = 'block';
-        errorDiv.style.background = '#d4edda';
-        errorDiv.style.color = '#155724';
-        errorDiv.style.borderColor = '#c3e6cb';
-
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-            errorDiv.style.background = '';
-            errorDiv.style.color = '';
-            errorDiv.style.borderColor = '';
-        }, SUCCESS_MESSAGE_DURATION_MS);
+        showSuccess(`✅ Fichier MIDI généré avec ${instrumentConfigs.length} piste(s) : ` +
+                   instrumentConfigs.map(i => i.name).join(', '));
 
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
@@ -722,18 +699,7 @@ function handleApplyTranspose() {
         setPlayButtonState(true);
 
         if (semitones !== 0) {
-            errorDiv.textContent = `✅ Partition générée avec transposition de ${semitones > 0 ? '+' : ''}${semitones} demi-ton(s)`;
-            errorDiv.style.display = 'block';
-            errorDiv.style.background = '#d4edda';
-            errorDiv.style.color = '#155724';
-            errorDiv.style.borderColor = '#c3e6cb';
-
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-                errorDiv.style.background = '';
-                errorDiv.style.color = '';
-                errorDiv.style.borderColor = '';
-            }, TRANSPOSE_MESSAGE_DURATION_MS);
+            showSuccess(`✅ Partition générée avec transposition de ${semitones > 0 ? '+' : ''}${semitones} demi-ton(s)`, TRANSPOSE_MESSAGE_DURATION_MS);
         }
 
     } catch (error) {
@@ -892,7 +858,7 @@ function showError(message) {
     errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function showSuccess(message) {
+function showSuccess(message, duration = SUCCESS_MESSAGE_DURATION_MS) {
     const errorDiv = document.getElementById('error-message');
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
@@ -905,7 +871,7 @@ function showSuccess(message) {
         errorDiv.style.background = '';
         errorDiv.style.color = '';
         errorDiv.style.borderColor = '';
-    }, SUCCESS_MESSAGE_DURATION_MS);
+    }, duration);
 }
 
 document.addEventListener('DOMContentLoaded', init);
