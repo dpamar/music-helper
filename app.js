@@ -1,3 +1,8 @@
+const BEATS_PER_LINE = 8;
+const SUCCESS_MESSAGE_DURATION_MS = 5000;
+const TRANSPOSE_MESSAGE_DURATION_MS = 3000;
+const MAX_MIDI_CHANNELS = 16;
+
 let parser;
 let renderer;
 let midiAudioPlayer;
@@ -34,7 +39,7 @@ function scoreToText(scoreData) {
     for (const note of scoreData.notes){
         result += eval(note.type + "ToText")(note) + " ";
         totalDuration += note.duration;
-        if (totalDuration >= 8) {
+        if (totalDuration >= BEATS_PER_LINE) {
             totalDuration = 0;
             result += "\n";
         }
@@ -524,7 +529,7 @@ function applyJazzTransformation() {
             errorDiv.style.background = '';
             errorDiv.style.color = '';
             errorDiv.style.borderColor = '';
-        }, 5000);
+        }, SUCCESS_MESSAGE_DURATION_MS);
 
     } catch (error) {
         console.error('❌ Erreur arrangement jazz:', error);
@@ -592,8 +597,8 @@ function handleValidateInstruments() {
         return;
     }
 
-    if (selectedInstruments.size > 16) {
-        alert('⚠️ Maximum 16 instruments (limitation du format MIDI)');
+    if (selectedInstruments.size > MAX_MIDI_CHANNELS) {
+        alert(`⚠️ Maximum ${MAX_MIDI_CHANNELS} instruments (limitation du format MIDI)`);
         return;
     }
 
@@ -642,7 +647,7 @@ function handleValidateInstruments() {
             errorDiv.style.background = '';
             errorDiv.style.color = '';
             errorDiv.style.borderColor = '';
-        }, 5000);
+        }, SUCCESS_MESSAGE_DURATION_MS);
 
     } catch (error) {
         errorDiv.textContent = '❌ Erreur lors de l\'export MIDI: ' + error.message;
@@ -718,7 +723,7 @@ function handleApplyTranspose() {
                 errorDiv.style.background = '';
                 errorDiv.style.color = '';
                 errorDiv.style.borderColor = '';
-            }, 3000);
+            }, TRANSPOSE_MESSAGE_DURATION_MS);
         }
 
     } catch (error) {
@@ -890,7 +895,7 @@ function showSuccess(message) {
         errorDiv.style.background = '';
         errorDiv.style.color = '';
         errorDiv.style.borderColor = '';
-    }, 5000);
+    }, SUCCESS_MESSAGE_DURATION_MS);
 }
 
 document.addEventListener('DOMContentLoaded', init);
